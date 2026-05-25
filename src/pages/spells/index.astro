@@ -21,7 +21,15 @@ const rows = all.slice(0, PAGE).map(s => ({
       We render Wowhead Classic tooltips inline for stock entries.
     </p>
     <div class="mt-8">
-      <EntityList kind="spells" rows={rows} title="All spells" />
+      <EntityList
+        kind="spells"
+        rows={rows}
+        title="All spells"
+        total={all.length}
+        page={1}
+        totalPages={1}
+        hrefBase="/db/spells"
+      />
     </div>
   </Container>
 </BaseLayout>
