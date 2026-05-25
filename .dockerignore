@@ -10,4 +10,7 @@ dist/
 *.log
 README.md
 LICENSE
-src/data/generated/
+# Note: NOT excluding src/data/generated/ — committed empty stubs are
+# needed by Rollup to satisfy the static imports in src/lib/db/data.ts.
+# The dump-db stage of the Dockerfile overwrites them with real content
+# when MariaDB creds are passed as build args.
