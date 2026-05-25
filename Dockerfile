@@ -37,11 +37,18 @@ FROM dump AS build
 RUN npm run build
 
 # ─── Stage 4: runtime ────────────────────────────────────────────────
-# Static output served by a minimal nginx. The Astro `base: '/db'`
-# means files land under /db/ — nginx serves them from there directly
-# so the upstream HTTPRoute path-routing works without a rewrite.
-FROM nginx:1.27-alpine AS runtime
-RUN apk add --no-cache curl
+# Static output served by nginx-unprivileged. Stock nginx-alpine
+# bakes in /var/cache/nginx + conf.d as root-owned and listens on
+# port 80 — both fight a non-root pod SecurityContext. The
+# `nginxinc/nginx-unprivileged` variant is the same nginx but
+# pre-configured for non-root operation: UID 101, port 8080, cache
+# and tmp dirs writable.
+#
+# The Astro `base: '/db'` means files already land under /db/ — we
+# serve dist/ directly with no rewrite so the upstream HTTPRoute
+# path-routing works as-is.
+FROM nginxinc/nginx-unprivileged:1.27-alpine AS runtime
+USER root
 COPY --from=build /app/dist /usr/share/nginx/html/db
 COPY <<'NGINX' /etc/nginx/conf.d/default.conf
 server {
@@ -79,11 +86,6 @@ server {
   }
 }
 NGINX
-
-# nginx-alpine listens on 80 by default; we listen on 8080 to fit under
-# the Pod SecurityContext requirements (non-root). Run as nginx user.
-USER nginx
+USER 101
 EXPOSE 8080
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -fsS http://127.0.0.1:8080/healthz || exit 1
 CMD ["nginx", "-g", "daemon off;"]
