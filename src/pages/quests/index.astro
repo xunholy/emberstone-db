@@ -3,26 +3,47 @@ import BaseLayout from '~/layouts/BaseLayout.astro';
 import Container from '~/components/layout/Container.astro';
 import EntityList from '~/components/entities/EntityList.astro';
 import { listQuests } from '~/lib/db/data';
+import { questFaction } from '~/lib/format';
 
-const PAGE = 100;
-const all = listQuests();
-const rows = all.slice(0, PAGE).map(q => ({
-  id: q.entry,
-  name: q.title,
-  meta: q.objectives ? q.objectives.slice(0, 80) : undefined,
-  level: q.minLevel || q.questLevel,
-  emberstoneCustom: q.emberstoneCustom
-}));
+// SSR'd so we can react to ?page= query param (and later filters).
+export const prerender = false;
+
+const PER_PAGE = 50;
+const all = listQuests().slice().sort((a, b) => (a.minLevel || a.questLevel || 0) - (b.minLevel || b.questLevel || 0) || a.entry - b.entry);
+const totalPages = Math.max(1, Math.ceil(all.length / PER_PAGE));
+const pageParam = Number(Astro.url.searchParams.get('page') ?? '1');
+const page = Math.min(Math.max(1, pageParam), totalPages);
+const start = (page - 1) * PER_PAGE;
+const rows = all.slice(start, start + PER_PAGE).map(q => {
+  const f = questFaction(q.requiredRaces);
+  return {
+    id: q.entry,
+    name: q.title,
+    meta: q.objectives ? q.objectives.slice(0, 90) + (q.objectives.length > 90 ? '…' : '')
+                       : (f !== 'neutral' ? `${f[0].toUpperCase()}${f.slice(1)}` : undefined),
+    level: q.minLevel || q.questLevel,
+    emberstoneCustom: q.emberstoneCustom
+  };
+});
 ---
-<BaseLayout title="Quests — Emberstone Database">
+<BaseLayout title={`Quests · page ${page} — Emberstone Database`}>
   <Container size="lg" class="mt-10">
-    <h1 class="font-serif text-4xl tracking-tight text-ash-50">Quests</h1>
-    <p class="mt-2 text-ash-400 max-w-2xl">
-      Every quest from the live world DB. Press <kbd class="px-1.5 py-0.5 text-[10px] rounded bg-bg-inset border border-ash-700 font-mono">⌘ K</kbd>
-      to search across all {all.length.toLocaleString()} entries — the list below shows the first {PAGE}.
+    <h1 class="font-heading text-4xl tracking-tight text-ash-50">Quests</h1>
+    <p class="mt-2 text-ash-300 max-w-2xl">
+      Every quest from the live world DB — Classic 1.12.1 only. Press
+      <kbd class="px-1.5 py-0.5 text-[10px] rounded bg-bg-inset border border-ember-500/[0.08] font-mono">⌘ K</kbd>
+      to search by name across all {all.length.toLocaleString()} entries instantly.
     </p>
     <div class="mt-8">
-      <EntityList kind="quests" rows={rows} title="All quests" />
+      <EntityList
+        kind="quests"
+        rows={rows}
+        title="All quests · sorted by level"
+        total={all.length}
+        page={page}
+        totalPages={totalPages}
+        hrefBase="/db/quests"
+      />
     </div>
   </Container>
 </BaseLayout>

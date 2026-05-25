@@ -11,14 +11,7 @@ import EntityHeader from '~/components/entities/EntityHeader.astro';
 //
 // Prerendered for every zone enumerated in /zones/index.astro so the
 // static build is fully complete (no runtime SSR needed).
-export const prerender = true;
-export async function getStaticPaths() {
-  const ids = [
-    12, 38, 40, 44, 47, 51, 1583, 1584, 215, 14, 405,
-    357, 16, 28, 139, 2017, 2057, 2159, 2677
-  ];
-  return ids.map(id => ({ params: { id: String(id) } }));
-}
+export const prerender = false;
 const { id } = Astro.params;
 ---
 <BaseLayout title={`Zone #${id} — Emberstone Database`}>

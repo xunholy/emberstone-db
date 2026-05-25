@@ -5,13 +5,10 @@ import EntityHeader from '~/components/entities/EntityHeader.astro';
 import ForkNote from '~/components/entities/ForkNote.astro';
 import SideMeta from '~/components/entities/SideMeta.astro';
 import WowheadLink from '~/components/entities/WowheadLink.astro';
-import { listNpcs, getNpc, getQuest } from '~/lib/db/data';
+import { getNpc, getQuest } from '~/lib/db/data';
 
-export const prerender = true;
-
-export async function getStaticPaths() {
-  return listNpcs().map(n => ({ params: { id: String(n.entry) } }));
-}
+// SSR — 10k NPC pages × ~25 KB would bloat the build; render on demand.
+export const prerender = false;
 
 const { id } = Astro.params;
 const npc = getNpc(Number(id));

@@ -4,15 +4,12 @@ import Container from '~/components/layout/Container.astro';
 import EntityHeader from '~/components/entities/EntityHeader.astro';
 import SideMeta from '~/components/entities/SideMeta.astro';
 import WowheadLink from '~/components/entities/WowheadLink.astro';
-import { listItems, getItem } from '~/lib/db/data';
+import { getItem } from '~/lib/db/data';
 import { formatMoney } from '~/lib/format';
 import { QUALITY_NAME, qualityTextClass, qualityGlowStyle } from '~/lib/quality';
 
-export const prerender = true;
-
-export async function getStaticPaths() {
-  return listItems().map(i => ({ params: { id: String(i.entry) } }));
-}
+// SSR — 17k items × ~30 KB would bloat the build; render on demand.
+export const prerender = false;
 
 const { id } = Astro.params;
 const item = getItem(Number(id));

@@ -4,64 +4,123 @@ import Container from '~/components/layout/Container.astro';
 import EmberCanvas from '~/components/effects/EmberCanvas.astro';
 import RevealOnScroll from '~/components/effects/RevealOnScroll.astro';
 
-// Hand-curated catalogue of the Emberstone fork's bespoke systems.
-// Source-of-truth references point at the xunholy/cmangos-classic repo
-// so anyone can audit what the realm actually ships.
+// One entry per module/system actually enabled on the live realm
+// (checked against the cmangos HelmRelease in k8s-gitops, see the
+// `Enable = 1` lines in mangosd-config). Hardcore + Dualspec are
+// listed under attunement because they were amalgamated into that
+// module in PR #19 — they're config-flagged subsystems, not
+// standalone modules.
 const MODULES = [
   {
     name: 'Attuner of Paths',
+    tag: 'NPC + module',
     icon: 'M12 2 4 7v6.5C4 18.2 7.6 22 12 22s8-3.8 8-8.5V7l-8-5Z',
     href: '/db/npcs/190014',
-    blurb: 'Single NPC that consolidates the three formerly-separate modules: XP rate, hardcore challenges, and dual specialization.',
+    blurb: 'A single NPC consolidating three previously-separate systems. The Attuner replaces several older custom NPCs and the standalone dualspec crystal.',
     bullets: [
       'XP rate selector (0.1× → 100×) — adjustable on the fly, per-character',
-      'Hardcore challenges: single life, drop loot on death, self-found, PvP toggle',
-      'Dual specialization unlock — free on our realm (Dualspec.Cost = 0)'
+      'Hardcore challenges submenu — single life, drop loot on death, self-found, PvP toggle',
+      'Dual specialization unlock (free on our realm: Dualspec.Cost = 0)'
     ],
     source: 'src/modules/attunement'
   },
   {
-    name: 'Dual Specialization',
-    icon: 'M8 4v16M16 4v16M3 8h18M3 16h18',
-    href: '/db/items/17731',
-    blurb: 'Two saved talent builds + action bars per character. Switch instantly via the Attuner gossip or the bound inventory ring (Item #17731).',
-    bullets: [
-      'Spec names are fixed: "Main Spec" and "Secondary Spec" (rename UI removed)',
-      'Single-confirm purchase row; live re-render on activate so the (active) marker is never stale',
-      'Existing players\' custom names from the legacy module remain honoured'
-    ],
-    source: 'src/modules/attunement/src/AttunementDualspec.h'
-  },
-  {
-    name: 'Hardcore challenges',
-    icon: 'M12 2v20M2 12h20M5 5l14 14M19 5 5 19',
-    href: '/db/custom/hardcore',
-    blurb: 'Opt-in difficulty modes that compound or stack. All toggleable mid-character via the Attuner of Paths.',
-    bullets: [
-      'Single-life mode with broadcast death notifications',
-      'Drop-loot-on-death (configurable gear/items/money/min level)',
-      'Self-found enforcement: no trades, no AH purchases',
-      'Optional PvP disable for hardcore solo runs'
-    ],
-    source: 'src/modules/attunement (hardcore subsystem)'
-  },
-  {
     name: 'Twinkmaster',
+    tag: 'NPC + module',
     icon: 'M9 17V7l6 4-6 6Z',
-    href: '/db/npcs/190015',
+    href: '/db/custom/twinkmaster',
     blurb: 'One-stop level-19 WSG twink setup NPC. Level lock, BiS gear/enchants browsing, free buff package, hardened talent reset.',
     bullets: [
       'Auto-detects twink status; cleans up rewards when the player unlocks XP',
       'Faction-filtered class spell teaching (no Alliance mages learning Teleport: Orgrimmar)',
-      'Free repair + full world/class buff package'
+      'Free repair + full world/class buff package on demand'
     ],
     source: 'src/modules/twinkmaster'
   },
   {
-    name: 'Playerbot AI',
+    name: 'Achievements',
+    tag: 'Module',
+    icon: 'M12 2 15 8l7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1Z',
+    href: '/db/custom/achievements',
+    blurb: 'WoTLK-style achievement system back-ported to vanilla. Tracks player accomplishments with the familiar pop-up + sound effects.',
+    bullets: [
+      'Realm-first leaderboards (bots excluded from rankings)',
+      'Visual celebration effects on unlock (effect id 146)',
+      'Per-character progress, no account-level rollup'
+    ],
+    source: 'src/modules/achievements'
+  },
+  {
+    name: 'Transmog',
+    tag: 'Module',
+    icon: 'M4 7h16v3l-3 2v8H7v-8L4 10V7Zm5 13V12m6 8V12',
+    href: '/db/custom/transmog',
+    blurb: 'Cosmetic gear appearance overrides. Apply any same-slot appearance to your equipped gear via chat command — stats and binding are preserved.',
+    bullets: [
+      'Chat-driven UX: <code>.transmog get</code> and <code>.transmog apply</code>',
+      'Same-slot, same-class restrictions enforced server-side',
+      'Original stats and bind state are unaffected'
+    ],
+    source: 'src/modules/transmog'
+  },
+  {
+    name: 'Barber',
+    tag: 'NPC + module',
+    icon: 'M6 6l12 12M6 18 18 6M12 4v16',
+    href: '/db/custom/barber',
+    blurb: 'Barbershop NPC for cosmetic restyles. Change hair, beard, facial features and skin tone outside of character creation.',
+    bullets: [
+      'Mirrors the in-game customisation UI for that race/sex',
+      'Modest fee — barber economy stays sane',
+      'Same NPC works for both factions'
+    ],
+    source: 'src/modules/barber'
+  },
+  {
+    name: 'Training Dummies',
+    tag: 'Module',
+    icon: 'M12 3v18M3 9h18M3 15h18',
+    href: '/db/custom/trainingdummies',
+    blurb: 'Stationary, immortal damage dummies stationed in capital cities for DPS rotation testing. No mob respawn timer, no aggro radius.',
+    bullets: [
+      'Stormwind + Orgrimmar + Ironforge etc. — every capital',
+      'Don\'t die, don\'t reset, don\'t evade',
+      'Useful for parsing your rotation against a stable target'
+    ],
+    source: 'src/modules/trainingdummies'
+  },
+  {
+    name: 'Autoscale',
+    tag: 'Module',
+    icon: 'M3 17v-4l5-3 5 3 8-5v9H3Z',
+    href: '/db/custom/autoscale',
+    blurb: 'Dynamic dungeon/raid HP scaling for under-staffed groups. Boss health drops proportionally when the encounter has fewer players than designed for. Never scales UP.',
+    bullets: [
+      'Per-encounter scaling factor based on live player count',
+      'Drops HP only — never inflates difficulty for full groups',
+      'Lets duos/trios still progress through 5/10/20-man content'
+    ],
+    source: 'src/modules/autoscale'
+  },
+  {
+    name: 'VIP perks',
+    tag: 'Module',
+    icon: 'M12 2 15 8l6-1-3 5 3 5-6-1-3 6-3-6-6 1 3-5-3-5 6 1Z',
+    href: '/db/custom/vip',
+    blurb: 'GM-grantable VIP status with a single "master spell" that cascades raid-strength buffs onto the target.',
+    bullets: [
+      'Single-cast buff package, no consumable juggling',
+      'Granted per-character, persists across logins',
+      'Server-side gate — players can\'t self-flag'
+    ],
+    source: 'src/modules/vip'
+  },
+  {
+    name: 'Playerbot population',
+    tag: 'Engine + module',
     icon: 'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 9a7 7 0 0 1 14 0v1H5v-1Z',
     href: '/db/custom/playerbots',
-    blurb: '500–2000 server-spawned bots fill the world. Recent: optional Ollama LLM integration for human-feeling whisper replies.',
+    blurb: '500–2000 server-spawned bots populate the world: questing, levelling, running dungeons, trading in the AH. Recently extended with optional LLM-driven whisper replies.',
     bullets: [
       'Atomic Item refcount + Loot destruction-order fixes (PR #11, #12)',
       'Optional LLM whisper backend talking to in-cluster Ollama (qwen2.5:3b)',
@@ -70,15 +129,29 @@ const MODULES = [
     source: 'src/modules/playerbots (engine patches) + AiPlayerbot'
   },
   {
+    name: 'Anticheat + Warden',
+    tag: 'Engine',
+    icon: 'M12 2 4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-4Z',
+    href: '/db/custom/anticheat',
+    blurb: 'Movement-based anticheat (speed/wallclimb/waterwalk/slowfall/flyhack) layered on top of Warden client-side scanning. Kick-only — no auto-bans.',
+    bullets: [
+      'Action mask = log + prompt + kick (never auto-ban on movement)',
+      'Random 30–90s kick delay so cheaters can\'t reverse-engineer detection',
+      'Movement extrapolation tracks legit lag spikes vs. teleport hacks'
+    ],
+    source: 'src/anticheat + Warden module dir /opt/mangos/bin/warden_modules'
+  },
+  {
     name: 'Server-side patches',
+    tag: 'Engine',
     icon: 'M3 12h18M3 6h18M3 18h18',
     href: '/db/changelog',
-    blurb: 'Fork-only fixes carried on top of upstream cmangos. Each documented inline on the affected quest/NPC page.',
+    blurb: 'Fork-only fixes carried on top of upstream cmangos. Each documented inline on the affected quest/NPC page where relevant.',
     bullets: [
       'Marshal Windsor escort no longer freezes at the Jaz cell (PR #20)',
-      'Pet stamina restoration on summon (cherry-picked from upstream)',
       '.gobject mangos_string format hardening',
-      'WorldportAck patch + Engine::Reset swap-then-iterate UAF fix (PR #9)'
+      'WorldportAck patch + Engine::Reset swap-then-iterate UAF fix (PR #9)',
+      'Faction-filtered trainer spell teaching (PR #14)'
     ],
     source: 'see fork changelog'
   }
@@ -86,7 +159,7 @@ const MODULES = [
 ---
 <BaseLayout
   title="Emberstone custom systems — Emberstone Database"
-  description="The bespoke NPCs, items, and server patches that make the Emberstone Classic realm what it is."
+  description="The bespoke NPCs, modules, and server patches that make the Emberstone Classic realm what it is. Every system listed here is actively enabled on the live realm."
 >
   <section class="relative isolate pt-16 sm:pt-24 overflow-hidden">
     <EmberCanvas density={50} />
@@ -94,15 +167,16 @@ const MODULES = [
       <RevealOnScroll>
         <span class="inline-flex items-center gap-2 text-[11px] uppercase tracking-widest text-ember-300">
           <svg class="h-3 w-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 4 7v6.5C4 18.2 7.6 22 12 22s8-3.8 8-8.5V7l-8-5Z"/></svg>
-          Emberstone-only
+          Live on the realm
         </span>
-        <h1 class="mt-4 font-serif text-5xl tracking-tight text-ash-50">
+        <h1 class="mt-4 font-heading text-5xl tracking-tight text-ash-50">
           What our realm adds.
         </h1>
-        <p class="mt-3 text-ash-300 max-w-2xl text-lg">
-          Six systems you won't find on any public Classic database — because they don't
-          exist anywhere else. All sourced from
-          <a class="text-ember-300 hover:text-ember-200" href="https://github.com/xunholy/cmangos-classic">xunholy/cmangos-classic</a>.
+        <p class="mt-3 text-ash-100 max-w-2xl text-lg">
+          Eleven systems you won't find on any public Classic database — because
+          they don't exist anywhere else. Every entry below is actively enabled
+          in our worldserver config. Source:
+          <a class="text-ember-300 hover:text-ember-bright" href="https://github.com/xunholy/cmangos-classic">xunholy/cmangos-classic</a>.
         </p>
       </RevealOnScroll>
     </Container>
@@ -111,31 +185,35 @@ const MODULES = [
   <Container size="lg" class="mt-12">
     <div class="grid lg:grid-cols-2 gap-4">
       {MODULES.map((m, i) => (
-        <RevealOnScroll delay={i * 80}>
+        <RevealOnScroll delay={i * 60}>
           <a
             href={m.href}
-            class="group block rounded-lg border border-ember-900/60 bg-bg-surface/80 p-6
-                   hover:border-ember-600/80 hover:shadow-glow-lg transition-all duration-500 ease-out-expo"
+            class="group block rounded-lg bg-bg-card backdrop-blur-sm border border-ember-500/[0.08] p-6
+                   hover:bg-bg-raised hover:border-ember-500/[0.30] hover:shadow-glow transition-all duration-500 ease-out-expo"
           >
             <div class="flex items-start gap-4">
-              <span class="inline-flex h-10 w-10 items-center justify-center rounded-md bg-gold-gradient text-bg shadow-glow">
+              <span class="inline-flex h-10 w-10 items-center justify-center rounded-md bg-gold-gradient text-bg shadow-glow shrink-0">
                 <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                   <path d={m.icon} stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </span>
-              <div class="flex-1">
-                <h3 class="font-serif text-xl text-ash-50 group-hover:text-ember-100 transition-colors">{m.name}</h3>
-                <p class="mt-1.5 text-sm text-ash-400 leading-relaxed">{m.blurb}</p>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 text-[10px] uppercase tracking-widest text-ash-300">{m.tag}</div>
+                <h3 class="mt-1 font-heading text-xl text-ash-50 group-hover:text-ember-bright transition-colors">{m.name}</h3>
+                <p class="mt-2 text-sm text-ash-100 leading-relaxed">{m.blurb}</p>
               </div>
             </div>
-            <ul class="mt-5 space-y-1.5 text-sm text-ash-300">
+            <ul class="mt-5 space-y-1.5 text-sm text-ash-100">
               {m.bullets.map(b => (
-                <li class="flex gap-2"><span class="text-ember-500 mt-1">▸</span><span>{b}</span></li>
+                <li class="flex gap-2">
+                  <span class="text-ember-500 mt-0.5">▸</span>
+                  <span set:html={b}></span>
+                </li>
               ))}
             </ul>
             <div class="mt-5 flex items-center justify-between text-[10px] uppercase tracking-widest">
-              <span class="text-ash-500 font-mono">{m.source}</span>
-              <span class="text-ember-300 group-hover:text-ember-200 transition-colors">
+              <span class="text-ash-300 font-mono">{m.source}</span>
+              <span class="text-ember-300 group-hover:text-ember-bright transition-colors">
                 View →
               </span>
             </div>

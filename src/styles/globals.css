@@ -1,36 +1,10 @@
+/* Cinzel (headings) + Inter (body) — identical to the live portal,
+   loaded from Google Fonts. Cached by Cloudflare on first visit. */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* ── Fonts ─────────────────────────────────────────────────────────────
-   Self-host the variable Geist + EB Garamond combo to keep typography
-   crisp without an external request on first paint. Loaded with
-   font-display:swap so we never block render on them — the fallback
-   stack (Inter/Georgia) is set up to be visually close enough that the
-   font swap is barely perceptible.
-   The actual .woff2 binaries are vendored under public/fonts; if any
-   are missing the browser silently falls back, which is fine. */
-@font-face {
-  font-family: 'Geist Sans';
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url('/db/fonts/GeistVariable.woff2') format('woff2-variations');
-}
-@font-face {
-  font-family: 'Geist Mono';
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url('/db/fonts/GeistMonoVariable.woff2') format('woff2-variations');
-}
-@font-face {
-  font-family: 'EB Garamond';
-  font-style: normal;
-  font-weight: 400 800;
-  font-display: swap;
-  src: url('/db/fonts/EBGaramondVariable.woff2') format('woff2-variations');
-}
 
 /* ── Base layer ───────────────────────────────────────────────────── */
 @layer base {
@@ -45,44 +19,52 @@
   }
   body {
     @apply bg-bg text-ash-100 font-sans antialiased min-h-screen;
-    font-feature-settings: 'cv11', 'ss01', 'ss03';
+    font-size: 16px;
+    line-height: 1.65;
   }
-  /* Subtle warm grain over the background to keep large dark surfaces
-     from looking flat. Pure CSS — no image request. */
+  /* Atmospheric background — mirrors the portal's gold + indigo
+     dual-gradient mesh. Sits behind content via z-index. */
   body::before {
     content: '';
-    @apply pointer-events-none fixed inset-0 z-0;
-    background-image:
-      radial-gradient(circle at 20% -10%, rgba(201, 168, 76, 0.06) 0%, transparent 45%),
-      radial-gradient(circle at 80% 110%, rgba(201, 168, 76, 0.04) 0%, transparent 50%);
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 800px 600px at 25% 20%, rgba(201, 168, 76, 0.04) 0%, transparent 70%),
+      radial-gradient(ellipse 600px 800px at 75% 80%, rgba(30, 58, 138, 0.06) 0%, transparent 70%);
   }
   ::selection {
     @apply bg-ember-500/30 text-ember-50;
   }
   /* Custom scrollbar — thin, brand-tinted on dark */
   *::-webkit-scrollbar { width: 10px; height: 10px; }
-  *::-webkit-scrollbar-track { @apply bg-bg-inset; }
-  *::-webkit-scrollbar-thumb { @apply bg-ash-700 rounded-full; }
-  *::-webkit-scrollbar-thumb:hover { @apply bg-ember-700; }
+  *::-webkit-scrollbar-track { background: rgba(0,0,0,0.35); }
+  *::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 999px; }
+  *::-webkit-scrollbar-thumb:hover { background: rgba(201, 168, 76, 0.35); }
   :focus-visible {
-    @apply outline-none ring-2 ring-ember-500/60 ring-offset-2 ring-offset-bg;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.60), 0 0 0 4px rgba(4, 6, 12, 1);
   }
 }
 
 /* ── Component patterns ──────────────────────────────────────────── */
 @layer components {
-  /* Subtle ember border + glow on hover. The shadow blur expands on
-     hover for a "warming up" feel rather than a hard color change. */
+  /* Mirrors portal's .box1 card: faint white background with gold-tinted
+     border that warms on hover. */
   .ember-card {
-    @apply relative rounded-lg border border-ash-800 bg-bg-surface
+    @apply relative rounded-lg bg-bg-card backdrop-blur-sm
            transition-all duration-500 ease-out-expo
-           hover:border-ember-800 hover:shadow-glow
-           hover:-translate-y-0.5;
+           hover:bg-bg-raised hover:-translate-y-0.5;
+    border: 1px solid rgba(201, 168, 76, 0.08);
+  }
+  .ember-card:hover {
+    border-color: rgba(201, 168, 76, 0.20);
+    box-shadow: 0 0 24px -4px rgba(201, 168, 76, 0.25);
   }
   .ember-card-inner {
     @apply relative z-10;
   }
-  /* The shimmering gold gradient used on hero headings */
   .text-gradient-gold {
     @apply bg-gold-gradient bg-clip-text text-transparent;
     background-size: 200% auto;
@@ -90,9 +72,14 @@
   .text-gradient-shimmer {
     @apply text-gradient-gold animate-shimmer;
   }
-  /* Sectional divider with a faint ember line */
   .ember-divider {
-    @apply h-px w-full bg-gradient-to-r from-transparent via-ember-700/40 to-transparent;
+    @apply h-px w-full;
+    background: linear-gradient(90deg, transparent, rgba(201, 168, 76, 0.40), transparent);
+  }
+  /* Cinzel-styled heading utility used on hero + section titles */
+  .h-display {
+    @apply font-heading text-ash-50;
+    letter-spacing: 0.015em;
   }
 }
 
@@ -106,7 +93,6 @@
     -webkit-mask-image: linear-gradient(to top, black 60%, transparent 100%);
             mask-image: linear-gradient(to top, black 60%, transparent 100%);
   }
-  /* Lets the canvas embers sit between bg and content without z-index gymnastics */
   .z-fx { z-index: 1; }
   .z-content { z-index: 2; }
 }

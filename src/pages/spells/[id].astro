@@ -3,12 +3,9 @@ import BaseLayout from '~/layouts/BaseLayout.astro';
 import Container from '~/components/layout/Container.astro';
 import EntityHeader from '~/components/entities/EntityHeader.astro';
 import WowheadLink from '~/components/entities/WowheadLink.astro';
-import { listSpells, getSpell } from '~/lib/db/data';
+import { getSpell } from '~/lib/db/data';
 
-export const prerender = true;
-export async function getStaticPaths() {
-  return listSpells().map(s => ({ params: { id: String(s.id) } }));
-}
+export const prerender = false;
 const { id } = Astro.params;
 const spell = getSpell(Number(id));
 if (!spell) return Astro.redirect('/db/404');

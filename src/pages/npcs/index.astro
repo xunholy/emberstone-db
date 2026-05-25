@@ -4,9 +4,15 @@ import Container from '~/components/layout/Container.astro';
 import EntityList from '~/components/entities/EntityList.astro';
 import { listNpcs } from '~/lib/db/data';
 
-const PAGE = 100;
-const all = listNpcs();
-const rows = all.slice(0, PAGE).map(n => ({
+export const prerender = false;
+
+const PER_PAGE = 50;
+const all = listNpcs().slice().sort((a, b) => (b.minLevel || 0) - (a.minLevel || 0) || a.entry - b.entry);
+const totalPages = Math.max(1, Math.ceil(all.length / PER_PAGE));
+const pageParam = Number(Astro.url.searchParams.get('page') ?? '1');
+const page = Math.min(Math.max(1, pageParam), totalPages);
+const start = (page - 1) * PER_PAGE;
+const rows = all.slice(start, start + PER_PAGE).map(n => ({
   id: n.entry,
   name: n.name,
   meta: n.subname || undefined,
@@ -14,15 +20,24 @@ const rows = all.slice(0, PAGE).map(n => ({
   emberstoneCustom: n.emberstoneCustom || (n.entry >= 190000 && n.entry < 200000)
 }));
 ---
-<BaseLayout title="NPCs — Emberstone Database">
+<BaseLayout title={`NPCs · page ${page} — Emberstone Database`}>
   <Container size="lg" class="mt-10">
-    <h1 class="font-serif text-4xl tracking-tight text-ash-50">NPCs</h1>
-    <p class="mt-2 text-ash-400 max-w-2xl">
-      Every creature, vendor, quest giver, escort target, and boss in the world. Use search to filter
-      across all {all.length.toLocaleString()} entries.
+    <h1 class="font-heading text-4xl tracking-tight text-ash-50">NPCs</h1>
+    <p class="mt-2 text-ash-300 max-w-2xl">
+      Every creature, vendor, quest giver, escort target, and boss in the world.
+      Sorted by level. Press <kbd class="px-1.5 py-0.5 text-[10px] rounded bg-bg-inset border border-ember-500/[0.08] font-mono">⌘ K</kbd>
+      to filter across all {all.length.toLocaleString()} entries.
     </p>
     <div class="mt-8">
-      <EntityList kind="npcs" rows={rows} title="All NPCs" />
+      <EntityList
+        kind="npcs"
+        rows={rows}
+        title="All NPCs · sorted by level"
+        total={all.length}
+        page={page}
+        totalPages={totalPages}
+        hrefBase="/db/npcs"
+      />
     </div>
   </Container>
 </BaseLayout>

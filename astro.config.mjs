@@ -3,24 +3,27 @@ import { defineConfig } from 'astro/config';
 import tailwind from '@astrojs/tailwind';
 import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
+import node from '@astrojs/node';
 
-// Pure static output — every page prerenders at build time from the
-// committed JSON snapshot (or a real DB dump if MARIADB creds are
-// passed to `npm run dump-db` before `npm run build`). No runtime
-// Node server needed; nginx serves dist/ directly.
+// Hybrid output: list/home/changelog/custom pages prerender at build
+// time, but the long-tail entity detail pages (~32k of them) SSR on
+// demand against the in-memory snapshot. Pre-rendering everything
+// produces ~16 GB of HTML — Node SSR with Cloudflare in front gives
+// the same "fast" UX without the disk footprint.
 export default defineConfig({
   site: 'https://emberstone.owncloud.ai',
   base: '/db',
-  trailingSlash: 'never',
-  output: 'static',
+  trailingSlash: 'ignore',
+  output: 'server',
+  adapter: node({ mode: 'standalone' }),
   integrations: [
     tailwind({ applyBaseStyles: false }),
     react(),
     sitemap(),
   ],
   prefetch: {
-    prefetchAll: true,
-    defaultStrategy: 'viewport',
+    prefetchAll: false,
+    defaultStrategy: 'hover',
   },
   vite: {
     ssr: {

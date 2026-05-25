@@ -1,46 +1,73 @@
 ---
-/**
- * Generic paginated entity table used by all /db/{kind} list pages.
- * No client JS — sort/filter is left to the search palette and per-row
- * navigation. Keeps server payload tiny.
- */
 import { Badge } from '~/components/ui/badge';
+import { qualityTextClass } from '~/lib/quality';
+
 type Row = {
   id: number;
   name: string;
   meta?: string;
   level?: number;
+  quality?: number;
   emberstoneCustom?: boolean;
 };
+
 interface Props {
   kind: 'quests' | 'items' | 'npcs' | 'spells' | 'zones';
   rows: Row[];
   title: string;
+  total: number;
+  /** 1-based current page. */
+  page: number;
+  totalPages: number;
+  /** Base path for prev/next links (without ?page=…). */
+  hrefBase: string;
 }
-const { kind, rows, title } = Astro.props;
+
+const { kind, rows, title, total, page, totalPages, hrefBase } = Astro.props;
+
+// 1-indexed page links. Show first, last, current ± 2, with ellipses
+// for gaps. Generates at most ~9 visible page links.
+function pageLinks(): (number | '…')[] {
+  const out: (number | '…')[] = [];
+  const push = (n: number | '…') => { if (out[out.length - 1] !== n) out.push(n); };
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === 1 || i === totalPages || Math.abs(i - page) <= 2) push(i);
+    else if (Math.abs(i - page) === 3) push('…');
+  }
+  return out;
+}
+const links = pageLinks();
 ---
 
-<div class="rounded-lg border border-ash-800 bg-bg-surface/80 overflow-hidden">
-  <div class="flex items-center justify-between gap-4 px-5 py-4 border-b border-ash-800">
+<div class="rounded-lg bg-bg-card border border-ember-500/[0.08] overflow-hidden backdrop-blur-sm">
+  <div class="flex items-center justify-between gap-4 px-5 py-4 border-b border-ember-500/[0.08]">
     <div>
-      <h2 class="font-serif text-xl text-ash-50">{title}</h2>
-      <p class="text-xs text-ash-500 mt-0.5">{rows.length.toLocaleString()} entries</p>
+      <h2 class="font-heading text-xl text-ash-50">{title}</h2>
+      <p class="text-xs text-ash-300 mt-0.5">
+        Showing <span class="text-ash-50">{rows.length}</span> of
+        <span class="text-ash-50">{total.toLocaleString()}</span> entries
+        · page <span class="text-ember-300">{page}</span> of {totalPages.toLocaleString()}
+      </p>
     </div>
-    <div class="text-[10px] uppercase tracking-widest text-ash-500">
-      Tap any row to open
+    <div class="hidden sm:flex items-center gap-1 text-[10px] uppercase tracking-widest text-ash-300">
+      Press <kbd class="px-1.5 py-0.5 rounded bg-bg-inset border border-ember-500/[0.08] font-mono">/</kbd>
+      to search
     </div>
   </div>
-  <ul class="divide-y divide-ash-800/70">
+  <ul class="divide-y divide-ember-500/[0.06]">
     {rows.map(r => (
       <li>
         <a
           href={`/db/${kind}/${r.id}`}
-          class="flex items-center gap-4 px-5 py-3 hover:bg-ash-800/30 transition-colors group"
+          class="flex items-center gap-4 px-5 py-2.5 hover:bg-bg-raised transition-colors group"
         >
-          <span class="font-mono text-xs text-ash-500 w-14 shrink-0">#{r.id}</span>
+          <span class="font-mono text-xs text-ash-300 w-16 shrink-0">#{r.id}</span>
           <span class="flex-1 min-w-0">
-            <span class="block text-sm text-ash-100 truncate group-hover:text-ember-200">{r.name}</span>
-            {r.meta && <span class="block text-xs text-ash-500 truncate">{r.meta}</span>}
+            <span class:list={[
+              'block text-sm truncate group-hover:text-ember-200 transition-colors',
+              r.quality !== undefined ? qualityTextClass(r.quality) : 'text-ash-50'
+            ]}>{r.name}</span>
+            {r.meta && <span class="block text-xs text-ash-300 truncate">{r.meta}</span>}
           </span>
           {typeof r.level === 'number' && r.level > 0 && (
             <Badge>Lv {r.level}</Badge>
@@ -48,11 +75,60 @@ const { kind, rows, title } = Astro.props;
           {r.emberstoneCustom && (
             <Badge tone="ember">Emberstone</Badge>
           )}
-          <svg class="h-3 w-3 text-ash-600 group-hover:text-ember-400 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg class="h-3 w-3 text-ash-400 group-hover:text-ember-400 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </a>
       </li>
     ))}
   </ul>
+
+  {totalPages > 1 && (
+    <nav class="flex items-center justify-center gap-1 px-5 py-4 border-t border-ember-500/[0.08]" aria-label="Pagination">
+      <a
+        href={page > 1 ? `${hrefBase}?page=${page - 1}` : undefined}
+        class:list={[
+          'inline-flex h-8 px-3 items-center justify-center rounded-md text-sm transition-colors',
+          page > 1
+            ? 'text-ash-100 hover:bg-bg-raised hover:text-ember-200'
+            : 'text-ash-400 cursor-default pointer-events-none'
+        ]}
+        aria-disabled={page <= 1}
+      >
+        ← Prev
+      </a>
+      <div class="flex items-center gap-1 mx-2">
+        {links.map(n => (
+          n === '…' ? (
+            <span class="text-ash-300 text-sm px-1">…</span>
+          ) : (
+            <a
+              href={`${hrefBase}?page=${n}`}
+              class:list={[
+                'inline-flex h-8 min-w-[2rem] items-center justify-center rounded-md text-sm tabular-nums transition-colors',
+                n === page
+                  ? 'bg-ember-500/15 text-ember-200 border border-ember-500/30'
+                  : 'text-ash-100 hover:bg-bg-raised hover:text-ember-200'
+              ]}
+              aria-current={n === page ? 'page' : undefined}
+            >
+              {n}
+            </a>
+          )
+        ))}
+      </div>
+      <a
+        href={page < totalPages ? `${hrefBase}?page=${page + 1}` : undefined}
+        class:list={[
+          'inline-flex h-8 px-3 items-center justify-center rounded-md text-sm transition-colors',
+          page < totalPages
+            ? 'text-ash-100 hover:bg-bg-raised hover:text-ember-200'
+            : 'text-ash-400 cursor-default pointer-events-none'
+        ]}
+        aria-disabled={page >= totalPages}
+      >
+        Next →
+      </a>
+    </nav>
+  )}
 </div>

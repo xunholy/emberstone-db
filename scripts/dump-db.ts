@@ -44,13 +44,17 @@ async function main() {
   });
 
   const quests = await safeQuery<{ entry: number; title: string; minLevel: number }>(conn,
+    // Vanilla cmangos doesn't have CompletedText (TBC+) or a stored RewXP
+    // (XP is computed client-side from QuestLevel + RewMoneyMaxLevel) —
+    // surfacing RewMoneyMaxLevel here lets the detail page display the
+    // intended money reward at max level.
     `SELECT entry, Title AS title, Objectives AS objectives, Details AS details,
             OfferRewardText AS offerRewardText, RequestItemsText AS requestItemsText,
-            EndText AS endText, CompletedText AS completedText,
+            EndText AS endText, '' AS completedText,
             MinLevel AS minLevel, QuestLevel AS questLevel, Type AS type,
             RequiredRaces AS requiredRaces, RequiredClasses AS requiredClasses,
             RequiredSkill AS requiredSkill, RequiredSkillValue AS requiredSkillValue,
-            RewOrReqMoney AS rewOrReqMoney, RewXP AS rewXP,
+            RewOrReqMoney AS rewOrReqMoney, RewMoneyMaxLevel AS rewXP,
             RewSpell AS rewSpell, RewSpellCast AS rewSpellCast,
             RewItemId1 AS rewItemId1, RewItemCount1 AS rewItemCount1,
             RewItemId2 AS rewItemId2, RewItemCount2 AS rewItemCount2,
@@ -74,21 +78,59 @@ async function main() {
        FROM item_template`, 'item_template');
 
   const npcs = await safeQuery<{ entry: number; name: string; subname: string | null; minLevel: number }>(conn,
-    `SELECT entry, name, subname,
+    // cmangos vanilla creature_template uses PascalCase column names
+    // and a single `Faction` column (no Alliance/Horde split — that's
+    // TBC). `type` in our projection maps to CreatureType.
+    `SELECT Entry AS entry, Name AS name, SubName AS subname,
             MinLevel AS minLevel, MaxLevel AS maxLevel,
-            FactionAlliance AS faction, rank, type,
+            Faction AS faction, Rank AS rank, CreatureType AS type,
             ScriptName AS scriptName
        FROM creature_template`, 'creature_template');
 
   const spells: unknown[] = []; // spell_template lives in DBC, intentionally skipped here
 
+  // Relations — collapse the link tables into CSV strings so the
+  // committed JSON stays one row per entity rather than exploding
+  // into a separate join table.
+  const startersRows = await safeQuery<{ quest: number; id: number }>(conn,
+    'SELECT quest, id FROM creature_questrelation', 'creature_questrelation');
+  const enderRows    = await safeQuery<{ quest: number; id: number }>(conn,
+    'SELECT quest, id FROM creature_involvedrelation', 'creature_involvedrelation');
+
+  const startersByQuest = new Map<number, number[]>();
+  const enderByQuest    = new Map<number, number[]>();
+  const startsByCreature = new Map<number, number[]>();
+  const endsByCreature   = new Map<number, number[]>();
+  for (const r of startersRows) {
+    (startersByQuest.get(r.quest) ?? startersByQuest.set(r.quest, []).get(r.quest)!).push(r.id);
+    (startsByCreature.get(r.id) ?? startsByCreature.set(r.id, []).get(r.id)!).push(r.quest);
+  }
+  for (const r of enderRows) {
+    (enderByQuest.get(r.quest) ?? enderByQuest.set(r.quest, []).get(r.quest)!).push(r.id);
+    (endsByCreature.get(r.id)  ?? endsByCreature.set(r.id, []).get(r.id)!).push(r.quest);
+  }
+
+  type Quest = typeof quests[number] & { startedBy?: string; finishedBy?: string };
+  type Npc   = typeof npcs[number]   & { startsQuests?: string; endsQuests?: string };
+
+  const questsEnriched = (quests as Quest[]).map(q => ({
+    ...q,
+    startedBy:  (startersByQuest.get(q.entry) ?? []).join(','),
+    finishedBy: (enderByQuest.get(q.entry)    ?? []).join(',')
+  }));
+  const npcsEnriched = (npcs as Npc[]).map(n => ({
+    ...n,
+    startsQuests: (startsByCreature.get(n.entry) ?? []).join(','),
+    endsQuests:   (endsByCreature.get(n.entry)   ?? []).join(',')
+  }));
+
   // Build a flat search index — fast load, fast match. Mark Emberstone
   // custom entries (entry/id in our known custom range >= 190000 for
   // NPCs, custom item flags, etc.) so the UI can highlight them.
   const idx = [
-    ...quests.map(q => ({ kind: 'quest', id: q.entry, name: q.title, level: q.minLevel })),
+    ...questsEnriched.map(q => ({ kind: 'quest', id: q.entry, name: q.title, level: q.minLevel })),
     ...items.map(i => ({ kind: 'item', id: i.entry, name: i.name, level: i.requiredLevel })),
-    ...npcs.map(n => ({
+    ...npcsEnriched.map(n => ({
       kind: 'npc', id: n.entry, name: n.name,
       meta: n.subname || undefined,
       level: n.minLevel,
@@ -99,22 +141,22 @@ async function main() {
   const snapshot = {
     generatedAt: new Date().toISOString(),
     counts: {
-      quests: quests.length,
+      quests: questsEnriched.length,
       items: items.length,
-      npcs: npcs.length,
+      npcs: npcsEnriched.length,
       spells: spells.length,
       emberstoneCustomQuests: 0,
       emberstoneCustomItems: items.filter(i => i.entry >= 190000 && i.entry < 200000).length,
-      emberstoneCustomNpcs: npcs.filter(n => n.entry >= 190000 && n.entry < 200000).length
+      emberstoneCustomNpcs: npcsEnriched.filter(n => n.entry >= 190000 && n.entry < 200000).length
     },
     index: idx
   };
 
   await Promise.all([
     writeFile(resolve(OUT_DIR, 'snapshot.json'), JSON.stringify(snapshot)),
-    writeFile(resolve(OUT_DIR, 'quests.json'), JSON.stringify(quests)),
+    writeFile(resolve(OUT_DIR, 'quests.json'), JSON.stringify(questsEnriched)),
     writeFile(resolve(OUT_DIR, 'items.json'), JSON.stringify(items)),
-    writeFile(resolve(OUT_DIR, 'npcs.json'), JSON.stringify(npcs)),
+    writeFile(resolve(OUT_DIR, 'npcs.json'), JSON.stringify(npcsEnriched)),
     writeFile(resolve(OUT_DIR, 'spells.json'), JSON.stringify(spells))
   ]);
 
