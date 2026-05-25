@@ -43,7 +43,7 @@ async function main() {
     namedPlaceholders: true, dateStrings: true
   });
 
-  const quests = await safeQuery(conn,
+  const quests = await safeQuery<{ entry: number; title: string; minLevel: number }>(conn,
     `SELECT entry, Title AS title, Objectives AS objectives, Details AS details,
             OfferRewardText AS offerRewardText, RequestItemsText AS requestItemsText,
             EndText AS endText, CompletedText AS completedText,
@@ -66,14 +66,14 @@ async function main() {
             ZoneOrSort AS zoneOrSort
        FROM quest_template`, 'quest_template');
 
-  const items = await safeQuery(conn,
+  const items = await safeQuery<{ entry: number; name: string; requiredLevel: number }>(conn,
     `SELECT entry, name, displayid AS displayId, Quality AS quality,
             ItemLevel AS itemLevel, RequiredLevel AS requiredLevel,
             class, subclass, InventoryType AS inventoryType, Flags AS flags,
             BuyPrice AS buyPrice, SellPrice AS sellPrice, stackable, description
        FROM item_template`, 'item_template');
 
-  const npcs = await safeQuery(conn,
+  const npcs = await safeQuery<{ entry: number; name: string; subname: string | null; minLevel: number }>(conn,
     `SELECT entry, name, subname,
             MinLevel AS minLevel, MaxLevel AS maxLevel,
             FactionAlliance AS faction, rank, type,
