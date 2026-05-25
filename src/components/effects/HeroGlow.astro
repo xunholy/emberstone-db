@@ -1,0 +1,22 @@
+---
+/**
+ * Decorative back-light for the home page hero. A large radial gold
+ * gradient with a soft mesh of grid lines on top. Sits behind content
+ * via the hero spotlight bg utility.
+ */
+---
+<div class="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+  <div class="absolute inset-0 bg-hero-spotlight"></div>
+  <div class="absolute inset-0 bg-ember-grid bg-grid opacity-[0.18] mask-fade-b"></div>
+  <!-- A faint orbital arc, hand-tuned coords — adds subtle motion of light -->
+  <div
+    class="absolute left-1/2 top-[18%] -translate-x-1/2 w-[140%] aspect-square
+           rounded-full border border-ember-700/15 opacity-60
+           animate-pulse-glow"
+    style="filter: blur(0.5px);"
+  />
+  <div
+    class="absolute left-1/2 top-[28%] -translate-x-1/2 w-[100%] aspect-square
+           rounded-full border border-ember-700/10 opacity-50"
+  />
+</div>

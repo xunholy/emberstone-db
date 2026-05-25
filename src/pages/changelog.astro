@@ -1,0 +1,71 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Container from '~/components/layout/Container.astro';
+import RevealOnScroll from '~/components/effects/RevealOnScroll.astro';
+
+// Source of truth: the cmangos-classic + k8s-gitops commit logs.
+// This list is hand-curated to surface user-visible changes; smaller
+// infra changes (image bumps, config tweaks) aren't logged here.
+const ENTRIES = [
+  {
+    date: '2026-05-25',
+    title: 'BRD Jail Break! escort no longer freezes',
+    body: 'Quest #4322 used to soft-lock when Jaz + Ograbisi died in the same AoE tick (the upstream cmangos SPECIAL flag guard swallowed the second death). Replaced with drain-on-empty GuidSets per cell.',
+    pr: { number: 20, repo: 'cmangos-classic' },
+    quest: 4322
+  },
+  {
+    date: '2026-05-25',
+    title: 'Attunement amalgamates dual specialization',
+    body: 'The standalone dualspec module is folded into the Attuner of Paths gossip. The crystal NPC (entry 190024) is despawned; the spec-switch flow lives on the Attuner. Inventory ring 17731 keeps its existing script binding. Spec names fixed to "Main Spec" / "Secondary Spec".',
+    pr: { number: 19, repo: 'cmangos-classic' }
+  },
+  {
+    date: '2026-05-23',
+    title: 'Loot shutdown UAF fixed',
+    body: 'GroupLootRoll::SendAllPassed used-after-free on world shutdown — the m_roll map was destroying refs into m_lootItems that had already been deleted. Fixed by explicit m_roll.clear() before the loot-item delete loop.',
+    pr: { number: 12, repo: 'cmangos-classic' }
+  },
+  {
+    date: '2026-05-22',
+    title: 'Playerbot Item UAF + atomic refcount',
+    body: 'Heap-use-after-free racing between Item::~Item on bot SaveToDB and ~Spell on a MapUpdater worker. Item destruction now honours m_usedInSpellCount; refcount made atomic; redundant double-bump removed from playerbots.',
+    pr: { number: 11, repo: 'cmangos-classic' }
+  }
+];
+---
+<BaseLayout title="Fork changelog — Emberstone Database">
+  <Container size="md" class="mt-12">
+    <h1 class="font-serif text-4xl tracking-tight text-ash-50">Fork changelog</h1>
+    <p class="mt-3 text-ash-400 max-w-xl">
+      User-visible patches our build carries on top of upstream cmangos. Linked PRs
+      live in the <a class="text-ember-300 hover:text-ember-200" href="https://github.com/xunholy/cmangos-classic">xunholy/cmangos-classic</a> repo.
+    </p>
+
+    <ol class="mt-10 relative border-l border-ember-900/50 pl-6 space-y-8">
+      {ENTRIES.map((e, i) => (
+        <RevealOnScroll delay={i * 60}>
+          <li class="relative">
+            <span class="absolute -left-[31px] top-1 inline-block h-3 w-3 rounded-full bg-ember-500 shadow-glow"/>
+            <div class="text-[10px] uppercase tracking-widest text-ash-500">{e.date}</div>
+            <h2 class="mt-1 font-serif text-xl text-ash-50">{e.title}</h2>
+            <p class="mt-2 text-ash-300 leading-relaxed">{e.body}</p>
+            <div class="mt-3 flex items-center gap-3 text-xs">
+              <a href={`https://github.com/xunholy/${e.pr.repo}/pull/${e.pr.number}`}
+                 class="text-ember-300 hover:text-ember-200"
+                 target="_blank" rel="noopener noreferrer">PR #{e.pr.number}</a>
+              {e.quest && (
+                <>
+                  <span class="text-ash-700">·</span>
+                  <a href={`/db/quests/${e.quest}`} class="text-ember-300 hover:text-ember-200">
+                    See quest page
+                  </a>
+                </>
+              )}
+            </div>
+          </li>
+        </RevealOnScroll>
+      ))}
+    </ol>
+  </Container>
+</BaseLayout>

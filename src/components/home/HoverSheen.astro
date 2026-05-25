@@ -1,0 +1,22 @@
+---
+/**
+ * Page-level pointer tracker — sets --mx/--my CSS vars on the nearest
+ * `[data-sheen-host]` element so radial-gradient "sheen" effects on
+ * cards/tiles follow the cursor. Pure CSS effect; this only updates
+ * the variable values.
+ */
+---
+<script>
+  const attach = () => {
+    document.querySelectorAll<HTMLElement>('[data-sheen-host]:not([data-sheen-ready])').forEach((el) => {
+      el.dataset.sheenReady = '1';
+      el.addEventListener('pointermove', (e: PointerEvent) => {
+        const rect = el.getBoundingClientRect();
+        el.style.setProperty('--mx', `${((e.clientX - rect.left) / rect.width) * 100}%`);
+        el.style.setProperty('--my', `${((e.clientY - rect.top) / rect.height) * 100}%`);
+      });
+    });
+  };
+  attach();
+  document.addEventListener('astro:page-load', attach);
+</script>

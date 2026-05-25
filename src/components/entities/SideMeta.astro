@@ -1,0 +1,30 @@
+---
+/**
+ * Right-rail meta panel: definition-list rows for chips/values that
+ * aren't worth a full paragraph (item entry, script name, prereqs).
+ */
+interface Row {
+  label: string;
+  value: string | number;
+  /** Optional mono styling for IDs. */
+  mono?: boolean;
+}
+interface Props {
+  rows: Row[];
+  title?: string;
+}
+const { rows, title = 'Details' } = Astro.props;
+---
+<aside class="rounded-lg border border-ash-800 bg-bg-surface/80 p-5">
+  <h3 class="text-xs uppercase tracking-widest text-ash-500 mb-3">{title}</h3>
+  <dl class="space-y-2.5 text-sm">
+    {rows.map(r => (
+      <div class="flex items-center justify-between gap-3">
+        <dt class="text-ash-500">{r.label}</dt>
+        <dd class:list={['text-ash-100 text-right', r.mono && 'font-mono text-ember-200']}>
+          {r.value}
+        </dd>
+      </div>
+    ))}
+  </dl>
+</aside>

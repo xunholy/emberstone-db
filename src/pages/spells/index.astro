@@ -1,0 +1,27 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Container from '~/components/layout/Container.astro';
+import EntityList from '~/components/entities/EntityList.astro';
+import { listSpells } from '~/lib/db/data';
+
+const PAGE = 100;
+const all = listSpells();
+const rows = all.slice(0, PAGE).map(s => ({
+  id: s.id,
+  name: s.name,
+  meta: s.description ? s.description.slice(0, 80) : undefined,
+  level: s.level
+}));
+---
+<BaseLayout title="Spells — Emberstone Database">
+  <Container size="lg" class="mt-10">
+    <h1 class="font-serif text-4xl tracking-tight text-ash-50">Spells</h1>
+    <p class="mt-2 text-ash-400 max-w-2xl">
+      Class abilities, talents, item-triggered procs, and creature spells from the DBC + spell_template.
+      We render Wowhead Classic tooltips inline for stock entries.
+    </p>
+    <div class="mt-8">
+      <EntityList kind="spells" rows={rows} title="All spells" />
+    </div>
+  </Container>
+</BaseLayout>

@@ -1,0 +1,13 @@
+{
+  "name": "Emberstone Database",
+  "short_name": "Emberstone DB",
+  "description": "Classic WoW (1.12.1) reference for the Emberstone realm",
+  "start_url": "/db/",
+  "scope": "/db/",
+  "display": "standalone",
+  "background_color": "#0a0805",
+  "theme_color": "#c9a84c",
+  "icons": [
+    { "src": "/db/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

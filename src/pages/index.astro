@@ -1,0 +1,312 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Container from '~/components/layout/Container.astro';
+import EmberCanvas from '~/components/effects/EmberCanvas.astro';
+import HeroGlow from '~/components/effects/HeroGlow.astro';
+import RevealOnScroll from '~/components/effects/RevealOnScroll.astro';
+import HoverSheen from '~/components/home/HoverSheen.astro';
+import StatTile from '~/components/home/StatTile.astro';
+import FeatureCard from '~/components/home/FeatureCard.astro';
+import { TypewriterTagline } from '~/components/effects/TypewriterTagline';
+import { getSnapshot } from '~/lib/db/data';
+
+const snap = getSnapshot();
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+const ICONS = {
+  quest: 'M9 3h6l2 4h3v14H4V7h3l2-4Zm3 6v8m-3-4h6',
+  item:  'M14 3 21 10l-9 9-7-7L14 3Zm-2 2-7 7 5 5 7-7',
+  npc:   'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 9a7 7 0 0 1 14 0v1H5v-1Z',
+  spell: 'M12 2v4m0 12v4m10-10h-4M6 12H2m15.071-7.071-2.828 2.828M9.757 14.243l-2.828 2.828m0-12.142 2.828 2.828m4.486 4.486 2.828 2.828',
+  custom:'M12 2 4 7v6.5C4 18.2 7.6 22 12 22s8-3.8 8-8.5V7l-8-5Zm0 5v10m-5-5h10',
+  zones: 'M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1 1 18 0Zm-9 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z'
+};
+---
+
+<BaseLayout
+  title="Emberstone Database — Classic WoW (1.12.1) reference"
+  description="Browse every quest, item, NPC, and Emberstone-specific feature on our Classic WoW 1.12.1 realm. Fast search, fork changelog overlays, authoritative game data."
+  heroEmbers
+>
+  <!-- ── Hero ─────────────────────────────────────────────────────── -->
+  <section
+    class="relative isolate min-h-[88vh] flex flex-col justify-center overflow-hidden"
+    data-sheen-host
+  >
+    <HeroGlow />
+    <EmberCanvas density={80} class="absolute inset-0" />
+
+    <Container size="xl">
+      <div class="relative z-content max-w-3xl">
+        <RevealOnScroll>
+          <span
+            class="inline-flex items-center gap-2 rounded-full border border-ember-800/60
+                   bg-ember-900/30 px-3 py-1 text-[11px] uppercase tracking-widest text-ember-300"
+          >
+            <span class="inline-block h-1.5 w-1.5 rounded-full bg-ember-400 shadow-glow animate-pulse"></span>
+            Classic Vanilla · Patch 1.12.1
+          </span>
+        </RevealOnScroll>
+
+        <RevealOnScroll delay={120}>
+          <h1
+            class="mt-6 font-serif text-5xl sm:text-7xl lg:text-8xl leading-[1.02]
+                   tracking-tightest text-ash-50"
+          >
+            The
+            <span class="text-gradient-shimmer bg-gold-gradient">Emberstone</span>
+            <br />
+            <span class="text-ash-100">database.</span>
+          </h1>
+        </RevealOnScroll>
+
+        <RevealOnScroll delay={240}>
+          <p class="mt-6 text-lg sm:text-xl text-ash-300 max-w-2xl">
+            Every quest, item, and NPC on our Classic 1.12.1 realm — plus the
+            <span class="text-ember-300">fork-specific systems</span> no other
+            database knows about.
+          </p>
+        </RevealOnScroll>
+
+        <RevealOnScroll delay={360}>
+          <div class="mt-2 text-base sm:text-lg text-ash-400 font-mono">
+            <span class="text-ash-600">$ </span>
+            <TypewriterTagline
+              client:load
+              phrases={[
+                'find "Onyxia attunement"',
+                'where does Sulfuron drop?',
+                'Attuner of Paths gossip options',
+                'all hardcore-challenge quests',
+                'recipes that need Black Lotus'
+              ]}
+              className="text-ember-200"
+            />
+          </div>
+        </RevealOnScroll>
+
+        <RevealOnScroll delay={520}>
+          <div class="mt-10 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              id="hero-search"
+              class="inline-flex items-center gap-3 h-12 pl-5 pr-4 rounded-md
+                     bg-gold-gradient text-bg font-medium shadow-glow
+                     hover:shadow-glow-lg hover:-translate-y-0.5
+                     transition-all duration-300 ease-out-expo"
+            >
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="7"/>
+                <path d="m21 21-4.3-4.3" stroke-linecap="round"/>
+              </svg>
+              <span>Start searching</span>
+              <span class="ml-2 flex items-center gap-1 text-xs">
+                <kbd class="inline-flex h-5 px-1.5 items-center rounded bg-bg/30 text-bg font-mono">⌘</kbd>
+                <kbd class="inline-flex h-5 px-1.5 items-center rounded bg-bg/30 text-bg font-mono">K</kbd>
+              </span>
+            </button>
+            <a
+              href={`${base}/custom`}
+              class="inline-flex items-center gap-2 h-12 px-5 rounded-md
+                     border border-ember-800/60 text-ember-200
+                     hover:bg-ember-900/30 hover:border-ember-700
+                     transition-all duration-300"
+            >
+              Emberstone features
+              <svg class="h-3 w-3 transition-transform group-hover:translate-x-0.5"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14M13 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </div>
+        </RevealOnScroll>
+      </div>
+    </Container>
+
+    <!-- soft fade out into the next section -->
+    <div class="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-transparent to-bg" aria-hidden="true"></div>
+  </section>
+
+  <!-- ── Stats strip ───────────────────────────────────────────────── -->
+  <section class="relative -mt-12 z-content" data-sheen-host>
+    <Container size="xl">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <RevealOnScroll>
+          <StatTile label="Quests"     value={snap.counts.quests}    hint="from quest_template" />
+        </RevealOnScroll>
+        <RevealOnScroll delay={80}>
+          <StatTile label="Items"      value={snap.counts.items}     hint="from item_template" />
+        </RevealOnScroll>
+        <RevealOnScroll delay={160}>
+          <StatTile label="NPCs"       value={snap.counts.npcs}      hint="from creature_template" />
+        </RevealOnScroll>
+        <RevealOnScroll delay={240}>
+          <StatTile
+            label="Emberstone custom"
+            value={
+              snap.counts.emberstoneCustomQuests +
+              snap.counts.emberstoneCustomItems +
+              snap.counts.emberstoneCustomNpcs
+            }
+            hint="entries unique to our realm"
+            accent
+          />
+        </RevealOnScroll>
+      </div>
+    </Container>
+  </section>
+
+  <!-- ── Browse grid ───────────────────────────────────────────────── -->
+  <section class="mt-24 sm:mt-32 relative" data-sheen-host>
+    <Container size="xl">
+      <RevealOnScroll>
+        <div class="flex items-end justify-between gap-6 mb-10">
+          <div>
+            <h2 class="font-serif text-3xl sm:text-4xl tracking-tight text-ash-50">
+              Browse the realm
+            </h2>
+            <p class="mt-2 text-ash-400 max-w-xl">
+              Six entry points into every piece of content the live server knows about.
+              Stock entries get authoritative Wowhead Classic tooltips inline; everything custom is documented from our source tree.
+            </p>
+          </div>
+        </div>
+      </RevealOnScroll>
+
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <RevealOnScroll delay={0}>
+          <FeatureCard
+            title="Quests"
+            description="Every quest in the world, with prereqs, choice rewards, level brackets, and the script that powers the encounter."
+            href={`${base}/quests`}
+            iconPath={ICONS.quest}
+            meta={snap.counts.quests.toLocaleString()}
+          />
+        </RevealOnScroll>
+        <RevealOnScroll delay={80}>
+          <FeatureCard
+            title="Items"
+            description="Weapons, gear, recipes, consumables. Rarity-tinted lists; drop chains traced back to source NPCs."
+            href={`${base}/items`}
+            iconPath={ICONS.item}
+            meta={snap.counts.items.toLocaleString()}
+          />
+        </RevealOnScroll>
+        <RevealOnScroll delay={160}>
+          <FeatureCard
+            title="NPCs"
+            description="Vendors, quest givers, bosses, escorts. See which quests they offer, which scripts power them, what they drop."
+            href={`${base}/npcs`}
+            iconPath={ICONS.npc}
+            meta={snap.counts.npcs.toLocaleString()}
+          />
+        </RevealOnScroll>
+        <RevealOnScroll delay={240}>
+          <FeatureCard
+            title="Spells"
+            description="Class talents, ability lines, item-triggered effects, and creature spells."
+            href={`${base}/spells`}
+            iconPath={ICONS.spell}
+            meta={snap.counts.spells.toLocaleString()}
+          />
+        </RevealOnScroll>
+        <RevealOnScroll delay={320}>
+          <FeatureCard
+            title="Zones & dungeons"
+            description="Wander the world by region. Every zone's NPCs, quests, and instance encounters in one place."
+            href={`${base}/zones`}
+            iconPath={ICONS.zones}
+          />
+        </RevealOnScroll>
+        <RevealOnScroll delay={400}>
+          <FeatureCard
+            title="Emberstone"
+            description="The Attuner of Paths, hardcore challenges, dual specialization, twinkmaster — everything our realm adds that nobody else's database knows."
+            href={`${base}/custom`}
+            iconPath={ICONS.custom}
+            meta="custom"
+            ember
+          />
+        </RevealOnScroll>
+      </div>
+    </Container>
+  </section>
+
+  <!-- ── Differentiator pitch ──────────────────────────────────────── -->
+  <section class="mt-24 sm:mt-32 relative">
+    <Container size="lg">
+      <div class="relative rounded-2xl border border-ember-900/60 bg-bg-surface overflow-hidden">
+        <div class="absolute inset-0 bg-gold-radial opacity-60" aria-hidden="true"></div>
+        <div class="relative grid lg:grid-cols-2 gap-10 p-8 sm:p-12">
+          <div>
+            <span class="inline-flex items-center gap-2 text-[11px] uppercase tracking-widest text-ember-300">
+              <svg class="h-3 w-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 2 4 7v6.5C4 18.2 7.6 22 12 22s8-3.8 8-8.5V7l-8-5Z"/>
+              </svg>
+              Differentiator
+            </span>
+            <h2 class="mt-3 font-serif text-3xl tracking-tight text-ash-50">
+              Fork-aware. Realm-honest.
+            </h2>
+            <p class="mt-3 text-ash-300 leading-relaxed">
+              When a stock quest gets patched in our build — like the
+              <a class="text-ember-300 hover:text-ember-200" href={`${base}/quests/4322`}>Jail Break! escort race</a>
+              that was freezing Marshal Windsor — you'll see it noted on the quest page.
+              No public Classic database can show you that, because no public database
+              knows what we've changed.
+            </p>
+            <p class="mt-3 text-ash-300 leading-relaxed">
+              The Attuner of Paths gossip, hardcore challenge toggles, dualspec ring,
+              and twinkmaster wares are documented from the source — config knobs
+              and all. The site is regenerated from MariaDB on every fork release.
+            </p>
+            <a
+              href={`${base}/changelog`}
+              class="inline-flex items-center gap-2 mt-6 text-sm text-ember-300 hover:text-ember-200"
+            >
+              See the fork changelog
+              <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14M13 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </div>
+          <div class="relative">
+            <!-- mock quest card with the fork overlay -->
+            <div class="rounded-lg border border-ash-800 bg-bg-inset/70 p-5 shadow-soft">
+              <div class="flex items-center gap-2 text-[10px] uppercase tracking-widest text-ash-500">
+                <span class="inline-block h-1.5 w-1.5 rounded-full bg-faction-alliance"/>
+                Alliance · Level 51
+              </div>
+              <h3 class="mt-2 font-serif text-xl text-ash-50">Jail Break!</h3>
+              <p class="mt-1 text-xs text-ash-400">
+                Escort Marshal Windsor out of Blackrock Depths' Detention Block.
+              </p>
+              <div class="mt-4 rounded-md border border-ember-800/60 bg-ember-900/20 p-3">
+                <div class="flex items-center gap-2 text-[10px] uppercase tracking-widest text-ember-300">
+                  <svg class="h-3 w-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 4 7v6.5C4 18.2 7.6 22 12 22s8-3.8 8-8.5V7l-8-5Z"/></svg>
+                  Emberstone fork note
+                </div>
+                <p class="mt-2 text-xs text-ash-300 leading-relaxed">
+                  Patched in our build (PR #20). The Jaz cell escort no longer
+                  freezes when Jaz + Ograbisi die in the same AoE tick.
+                </p>
+              </div>
+            </div>
+            <div
+              class="absolute -bottom-4 -right-4 -z-10 h-32 w-32 rounded-full bg-ember-600/15 blur-3xl"
+              aria-hidden="true"
+            />
+          </div>
+        </div>
+      </div>
+    </Container>
+  </section>
+
+  <HoverSheen />
+
+  <script>
+    document.getElementById('hero-search')?.addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('emberstone:open-search'));
+    });
+  </script>
+</BaseLayout>

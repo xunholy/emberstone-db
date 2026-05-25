@@ -1,0 +1,29 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Container from '~/components/layout/Container.astro';
+import EntityList from '~/components/entities/EntityList.astro';
+import { listQuests } from '~/lib/db/data';
+import { questFaction } from '~/lib/format';
+
+const PAGE = 100;
+const all = listQuests();
+const rows = all.slice(0, PAGE).map(q => ({
+  id: q.entry,
+  name: q.title,
+  meta: q.objectives ? q.objectives.slice(0, 80) : undefined,
+  level: q.minLevel || q.questLevel,
+  emberstoneCustom: q.emberstoneCustom
+}));
+---
+<BaseLayout title="Quests — Emberstone Database">
+  <Container size="lg" class="mt-10">
+    <h1 class="font-serif text-4xl tracking-tight text-ash-50">Quests</h1>
+    <p class="mt-2 text-ash-400 max-w-2xl">
+      Every quest from the live world DB. Press <kbd class="px-1.5 py-0.5 text-[10px] rounded bg-bg-inset border border-ash-700 font-mono">⌘ K</kbd>
+      to search across all {all.length.toLocaleString()} entries — the list below shows the first {PAGE}.
+    </p>
+    <div class="mt-8">
+      <EntityList kind="quests" rows={rows} title="All quests" />
+    </div>
+  </Container>
+</BaseLayout>

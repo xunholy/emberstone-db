@@ -1,0 +1,60 @@
+---
+/**
+ * Wraps content in an IntersectionObserver-driven fade-up. Honors
+ * prefers-reduced-motion (the observer simply marks elements visible
+ * immediately in that case).
+ */
+interface Props {
+  delay?: number;        // ms
+  as?: keyof HTMLElementTagNameMap;
+  class?: string;
+}
+const { delay = 0, as: Tag = 'div', class: cls = '' } = Astro.props;
+---
+<Tag
+  data-reveal
+  style={`--reveal-delay:${delay}ms`}
+  class:list={['opacity-0 will-change-transform', cls]}
+>
+  <slot />
+</Tag>
+
+<script>
+  const reveal = () => {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const els = document.querySelectorAll<HTMLElement>('[data-reveal]:not([data-reveal-done])');
+
+    if (reduce) {
+      els.forEach((el) => {
+        el.style.opacity = '1';
+        el.dataset.revealDone = '1';
+      });
+      return;
+    }
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            const el = e.target as HTMLElement;
+            const delay = el.style.getPropertyValue('--reveal-delay') || '0ms';
+            el.style.transition = `opacity 800ms cubic-bezier(0.16, 1, 0.3, 1) ${delay}, transform 800ms cubic-bezier(0.16, 1, 0.3, 1) ${delay}`;
+            el.style.transform = 'translateY(0)';
+            el.style.opacity = '1';
+            el.dataset.revealDone = '1';
+            io.unobserve(el);
+          }
+        }
+      },
+      { rootMargin: '-40px 0px -10% 0px', threshold: 0.1 }
+    );
+
+    els.forEach((el) => {
+      el.style.transform = 'translateY(14px)';
+      io.observe(el);
+    });
+  };
+
+  reveal();
+  document.addEventListener('astro:page-load', reveal);
+</script>

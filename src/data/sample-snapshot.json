@@ -1,0 +1,118 @@
+{
+  "generatedAt": "2026-05-25T00:00:00.000Z",
+  "counts": {
+    "quests": 2789,
+    "items": 21412,
+    "npcs": 15238,
+    "spells": 19461,
+    "emberstoneCustomQuests": 0,
+    "emberstoneCustomItems": 1,
+    "emberstoneCustomNpcs": 3
+  },
+  "index": [
+    { "kind": "quest", "id": 4322, "name": "Jail Break!", "meta": "Blackrock Depths · Onyxia attunement", "level": 51 },
+    { "kind": "quest", "id": 4264, "name": "Stormwind Rendezvous", "meta": "Reginald Windsor chain", "level": 50 },
+    { "kind": "quest", "id": 4262, "name": "The Lord of Blackrock", "meta": "Onyxia attunement", "level": 60 },
+    { "kind": "npc", "id": 9023, "name": "Marshal Reginald Windsor", "meta": "Blackrock Depths — Detention Block", "level": 60 },
+    { "kind": "npc", "id": 9681, "name": "Jaz the Defiler", "meta": "Blackrock Depths cell warden", "level": 55 },
+    { "kind": "npc", "id": 9677, "name": "Ograbisi", "meta": "Blackrock Depths warden", "level": 56 },
+    { "kind": "npc", "id": 190014, "name": "Attuner of Paths", "meta": "Emberstone custom — XP rates, hardcore, dualspec", "level": 60, "emberstoneCustom": true },
+    { "kind": "npc", "id": 190024, "name": "Dual Specialization Crystal", "meta": "Despawned (amalgamated into Attuner of Paths)", "level": 60, "emberstoneCustom": true },
+    { "kind": "item", "id": 17731, "name": "Dual Specialization Activation Ring", "meta": "Triggers spec switch when used", "emberstoneCustom": true },
+    { "kind": "item", "id": 12947, "name": "Sulfuron Hammer", "meta": "Legendary 1H Mace", "level": 80 },
+    { "kind": "item", "id": 19019, "name": "Thunderfury, Blessed Blade of the Windseeker", "meta": "Legendary 1H Sword", "level": 80 },
+    { "kind": "item", "id": 18608, "name": "Benediction", "meta": "Epic Staff", "level": 70 },
+    { "kind": "spell", "id": 19736, "name": "Frostbolt", "meta": "Mage" },
+    { "kind": "spell", "id": 25467, "name": "Shadowflame", "meta": "Onyxia" }
+  ],
+  "quests": [
+    {
+      "entry": 4322,
+      "title": "Jail Break!",
+      "objectives": "Escort Marshal Windsor out of the Detention Block.",
+      "details": "Bring me my equipment, $N, and we shall make our escape from this wretched place. We must find Tobias and the other prisoners along the way — I'll not leave a soul behind for the Dark Iron to torment.",
+      "offerRewardText": "We made it out. I will not forget your bravery, $N.",
+      "requestItemsText": "We must press on. Are the others ready?",
+      "endText": "",
+      "completedText": "Marshal Windsor escorted to safety.",
+      "minLevel": 51,
+      "questLevel": 55,
+      "type": 81,
+      "requiredRaces": 1,
+      "requiredClasses": 0,
+      "requiredSkill": 0,
+      "requiredSkillValue": 0,
+      "rewOrReqMoney": 0,
+      "rewXP": 6600,
+      "rewSpell": 0,
+      "rewSpellCast": 0,
+      "rewItemId1": 0, "rewItemCount1": 0,
+      "rewItemId2": 0, "rewItemCount2": 0,
+      "rewItemId3": 0, "rewItemCount3": 0,
+      "rewItemId4": 0, "rewItemCount4": 0,
+      "rewChoiceItemId1": 0, "rewChoiceItemCount1": 0,
+      "rewChoiceItemId2": 0, "rewChoiceItemCount2": 0,
+      "rewChoiceItemId3": 0, "rewChoiceItemCount3": 0,
+      "rewChoiceItemId4": 0, "rewChoiceItemCount4": 0,
+      "rewChoiceItemId5": 0, "rewChoiceItemCount5": 0,
+      "rewChoiceItemId6": 0, "rewChoiceItemCount6": 0,
+      "prevQuestId": 4264,
+      "nextQuestId": 4324,
+      "nextQuestInChain": 4324,
+      "startedBy": "9023",
+      "finishedBy": "9023",
+      "zoneOrSort": -371
+    }
+  ],
+  "items": [
+    {
+      "entry": 17731,
+      "name": "Dual Specialization Activation Ring",
+      "displayId": 6928,
+      "quality": 4,
+      "itemLevel": 60,
+      "requiredLevel": 10,
+      "class": 4,
+      "subclass": 0,
+      "inventoryType": 11,
+      "flags": 0,
+      "buyPrice": 0,
+      "sellPrice": 0,
+      "stackable": 1,
+      "description": "Triggers the spec-switch gossip when used. Equivalent to talking to the Attuner of Paths.",
+      "emberstoneCustom": true
+    }
+  ],
+  "npcs": [
+    {
+      "entry": 9023,
+      "name": "Marshal Reginald Windsor",
+      "subname": "Stormwind Marshal",
+      "minLevel": 60,
+      "maxLevel": 60,
+      "faction": 35,
+      "rank": 1,
+      "type": 7,
+      "startsQuests": "4322",
+      "endsQuests": "4322",
+      "scriptName": "npc_marshal_windsor"
+    },
+    {
+      "entry": 190014,
+      "name": "Attuner of Paths",
+      "subname": "Custodian of Realms",
+      "minLevel": 60,
+      "maxLevel": 60,
+      "faction": 35,
+      "rank": 0,
+      "type": 7,
+      "startsQuests": "",
+      "endsQuests": "",
+      "scriptName": "AttunementModule",
+      "emberstoneCustom": true
+    }
+  ],
+  "spells": [
+    { "id": 19736, "name": "Frostbolt", "description": "Launches a bolt of frost at the enemy, causing Frost damage and slowing movement speed.", "level": 1, "classMask": 128, "rangeIndex": 6, "schoolMask": 16 }
+  ]
+}

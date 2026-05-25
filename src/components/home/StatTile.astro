@@ -1,0 +1,36 @@
+---
+import { AnimatedCounter } from '~/components/effects/AnimatedCounter';
+interface Props {
+  label: string;
+  value: number;
+  hint?: string;
+  /** Optional ember-tinted accent — used for the "Custom" tile. */
+  accent?: boolean;
+}
+const { label, value, hint, accent = false } = Astro.props;
+---
+<div
+  class:list={[
+    'group relative overflow-hidden rounded-lg border bg-bg-surface/80 p-5',
+    'transition-all duration-500 ease-out-expo',
+    'hover:-translate-y-1 hover:shadow-glow',
+    accent ? 'border-ember-800/70 hover:border-ember-600/80' : 'border-ash-800 hover:border-ember-800'
+  ]}
+>
+  <!-- background sheen on hover -->
+  <div
+    class="absolute -inset-px rounded-lg opacity-0 group-hover:opacity-100
+           transition-opacity duration-700
+           bg-[radial-gradient(circle_at_var(--mx,_50%)_var(--my,_50%),_rgba(201,168,76,0.12),_transparent_60%)]"
+    aria-hidden="true"
+  />
+  <div class="relative">
+    <div class="text-[10px] font-medium uppercase tracking-widest text-ash-500">
+      {label}
+    </div>
+    <div class="mt-2 text-3xl font-semibold tracking-tightest text-ash-50 tabular-nums">
+      <AnimatedCounter to={value} client:visible className={accent ? 'text-gradient-gold' : ''} />
+    </div>
+    {hint && <div class="mt-1 text-xs text-ash-500">{hint}</div>}
+  </div>
+</div>

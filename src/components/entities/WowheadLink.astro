@@ -1,0 +1,34 @@
+---
+/**
+ * Anchor that the Wowhead Classic tooltip widget (loaded once in
+ * BaseLayout) decorates on hover with the authoritative item/quest/
+ * spell/npc tooltip from the classic.wowhead.com data set.
+ *
+ * Use for stock entries only — custom Emberstone entries (entry >=
+ * 190000) should render native tooltips since Wowhead doesn't know
+ * them.
+ */
+type Kind = 'quest' | 'item' | 'npc' | 'spell';
+interface Props {
+  kind: Kind;
+  id: number;
+  children?: any;
+  class?: string;
+}
+const { kind, id, class: cls = '' } = Astro.props;
+const path = kind === 'npc' ? 'npc' : kind;
+const url = `https://www.wowhead.com/classic/${path}=${id}`;
+---
+<a
+  href={url}
+  data-wowhead={`${kind}=${id}`}
+  data-wh-icon-added="true"
+  target="_blank"
+  rel="noopener noreferrer"
+  class:list={[
+    'text-ember-300 hover:text-ember-200 underline-offset-4 decoration-dotted hover:underline transition-colors',
+    cls
+  ]}
+>
+  <slot />
+</a>

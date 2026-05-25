@@ -1,0 +1,28 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Container from '~/components/layout/Container.astro';
+import EntityList from '~/components/entities/EntityList.astro';
+import { listNpcs } from '~/lib/db/data';
+
+const PAGE = 100;
+const all = listNpcs();
+const rows = all.slice(0, PAGE).map(n => ({
+  id: n.entry,
+  name: n.name,
+  meta: n.subname || undefined,
+  level: n.minLevel,
+  emberstoneCustom: n.emberstoneCustom || (n.entry >= 190000 && n.entry < 200000)
+}));
+---
+<BaseLayout title="NPCs — Emberstone Database">
+  <Container size="lg" class="mt-10">
+    <h1 class="font-serif text-4xl tracking-tight text-ash-50">NPCs</h1>
+    <p class="mt-2 text-ash-400 max-w-2xl">
+      Every creature, vendor, quest giver, escort target, and boss in the world. Use search to filter
+      across all {all.length.toLocaleString()} entries.
+    </p>
+    <div class="mt-8">
+      <EntityList kind="npcs" rows={rows} title="All NPCs" />
+    </div>
+  </Container>
+</BaseLayout>

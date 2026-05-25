@@ -1,0 +1,147 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Container from '~/components/layout/Container.astro';
+import EmberCanvas from '~/components/effects/EmberCanvas.astro';
+import RevealOnScroll from '~/components/effects/RevealOnScroll.astro';
+
+// Hand-curated catalogue of the Emberstone fork's bespoke systems.
+// Source-of-truth references point at the xunholy/cmangos-classic repo
+// so anyone can audit what the realm actually ships.
+const MODULES = [
+  {
+    name: 'Attuner of Paths',
+    icon: 'M12 2 4 7v6.5C4 18.2 7.6 22 12 22s8-3.8 8-8.5V7l-8-5Z',
+    href: '/db/npcs/190014',
+    blurb: 'Single NPC that consolidates the three formerly-separate modules: XP rate, hardcore challenges, and dual specialization.',
+    bullets: [
+      'XP rate selector (0.1× → 100×) — adjustable on the fly, per-character',
+      'Hardcore challenges: single life, drop loot on death, self-found, PvP toggle',
+      'Dual specialization unlock — free on our realm (Dualspec.Cost = 0)'
+    ],
+    source: 'src/modules/attunement'
+  },
+  {
+    name: 'Dual Specialization',
+    icon: 'M8 4v16M16 4v16M3 8h18M3 16h18',
+    href: '/db/items/17731',
+    blurb: 'Two saved talent builds + action bars per character. Switch instantly via the Attuner gossip or the bound inventory ring (Item #17731).',
+    bullets: [
+      'Spec names are fixed: "Main Spec" and "Secondary Spec" (rename UI removed)',
+      'Single-confirm purchase row; live re-render on activate so the (active) marker is never stale',
+      'Existing players\' custom names from the legacy module remain honoured'
+    ],
+    source: 'src/modules/attunement/src/AttunementDualspec.h'
+  },
+  {
+    name: 'Hardcore challenges',
+    icon: 'M12 2v20M2 12h20M5 5l14 14M19 5 5 19',
+    href: '/db/custom/hardcore',
+    blurb: 'Opt-in difficulty modes that compound or stack. All toggleable mid-character via the Attuner of Paths.',
+    bullets: [
+      'Single-life mode with broadcast death notifications',
+      'Drop-loot-on-death (configurable gear/items/money/min level)',
+      'Self-found enforcement: no trades, no AH purchases',
+      'Optional PvP disable for hardcore solo runs'
+    ],
+    source: 'src/modules/attunement (hardcore subsystem)'
+  },
+  {
+    name: 'Twinkmaster',
+    icon: 'M9 17V7l6 4-6 6Z',
+    href: '/db/npcs/190015',
+    blurb: 'One-stop level-19 WSG twink setup NPC. Level lock, BiS gear/enchants browsing, free buff package, hardened talent reset.',
+    bullets: [
+      'Auto-detects twink status; cleans up rewards when the player unlocks XP',
+      'Faction-filtered class spell teaching (no Alliance mages learning Teleport: Orgrimmar)',
+      'Free repair + full world/class buff package'
+    ],
+    source: 'src/modules/twinkmaster'
+  },
+  {
+    name: 'Playerbot AI',
+    icon: 'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 9a7 7 0 0 1 14 0v1H5v-1Z',
+    href: '/db/custom/playerbots',
+    blurb: '500–2000 server-spawned bots fill the world. Recent: optional Ollama LLM integration for human-feeling whisper replies.',
+    bullets: [
+      'Atomic Item refcount + Loot destruction-order fixes (PR #11, #12)',
+      'Optional LLM whisper backend talking to in-cluster Ollama (qwen2.5:3b)',
+      'PTR-validated under ASan before promoting to live'
+    ],
+    source: 'src/modules/playerbots (engine patches) + AiPlayerbot'
+  },
+  {
+    name: 'Server-side patches',
+    icon: 'M3 12h18M3 6h18M3 18h18',
+    href: '/db/changelog',
+    blurb: 'Fork-only fixes carried on top of upstream cmangos. Each documented inline on the affected quest/NPC page.',
+    bullets: [
+      'Marshal Windsor escort no longer freezes at the Jaz cell (PR #20)',
+      'Pet stamina restoration on summon (cherry-picked from upstream)',
+      '.gobject mangos_string format hardening',
+      'WorldportAck patch + Engine::Reset swap-then-iterate UAF fix (PR #9)'
+    ],
+    source: 'see fork changelog'
+  }
+];
+---
+<BaseLayout
+  title="Emberstone custom systems — Emberstone Database"
+  description="The bespoke NPCs, items, and server patches that make the Emberstone Classic realm what it is."
+>
+  <section class="relative isolate pt-16 sm:pt-24 overflow-hidden">
+    <EmberCanvas density={50} />
+    <Container size="lg">
+      <RevealOnScroll>
+        <span class="inline-flex items-center gap-2 text-[11px] uppercase tracking-widest text-ember-300">
+          <svg class="h-3 w-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 4 7v6.5C4 18.2 7.6 22 12 22s8-3.8 8-8.5V7l-8-5Z"/></svg>
+          Emberstone-only
+        </span>
+        <h1 class="mt-4 font-serif text-5xl tracking-tight text-ash-50">
+          What our realm adds.
+        </h1>
+        <p class="mt-3 text-ash-300 max-w-2xl text-lg">
+          Six systems you won't find on any public Classic database — because they don't
+          exist anywhere else. All sourced from
+          <a class="text-ember-300 hover:text-ember-200" href="https://github.com/xunholy/cmangos-classic">xunholy/cmangos-classic</a>.
+        </p>
+      </RevealOnScroll>
+    </Container>
+  </section>
+
+  <Container size="lg" class="mt-12">
+    <div class="grid lg:grid-cols-2 gap-4">
+      {MODULES.map((m, i) => (
+        <RevealOnScroll delay={i * 80}>
+          <a
+            href={m.href}
+            class="group block rounded-lg border border-ember-900/60 bg-bg-surface/80 p-6
+                   hover:border-ember-600/80 hover:shadow-glow-lg transition-all duration-500 ease-out-expo"
+          >
+            <div class="flex items-start gap-4">
+              <span class="inline-flex h-10 w-10 items-center justify-center rounded-md bg-gold-gradient text-bg shadow-glow">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d={m.icon} stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              <div class="flex-1">
+                <h3 class="font-serif text-xl text-ash-50 group-hover:text-ember-100 transition-colors">{m.name}</h3>
+                <p class="mt-1.5 text-sm text-ash-400 leading-relaxed">{m.blurb}</p>
+              </div>
+            </div>
+            <ul class="mt-5 space-y-1.5 text-sm text-ash-300">
+              {m.bullets.map(b => (
+                <li class="flex gap-2"><span class="text-ember-500 mt-1">▸</span><span>{b}</span></li>
+              ))}
+            </ul>
+            <div class="mt-5 flex items-center justify-between text-[10px] uppercase tracking-widest">
+              <span class="text-ash-500 font-mono">{m.source}</span>
+              <span class="text-ember-300 group-hover:text-ember-200 transition-colors">
+                View →
+              </span>
+            </div>
+          </a>
+        </RevealOnScroll>
+      ))}
+    </div>
+  </Container>
+</BaseLayout>

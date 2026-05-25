@@ -1,0 +1,234 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Container from '~/components/layout/Container.astro';
+import EntityHeader from '~/components/entities/EntityHeader.astro';
+import ForkNote from '~/components/entities/ForkNote.astro';
+import SideMeta from '~/components/entities/SideMeta.astro';
+import WowheadLink from '~/components/entities/WowheadLink.astro';
+import RevealOnScroll from '~/components/effects/RevealOnScroll.astro';
+import { listQuests, getQuest, getNpc } from '~/lib/db/data';
+import { formatMoney, questFaction, formatLevelRange } from '~/lib/format';
+
+export const prerender = true;
+
+export async function getStaticPaths() {
+  return listQuests().map(q => ({ params: { id: String(q.entry) } }));
+}
+
+const { id } = Astro.params;
+const quest = getQuest(Number(id));
+
+if (!quest) {
+  return Astro.redirect('/db/404');
+}
+
+const faction = questFaction(quest.requiredRaces);
+const startedByEntries = quest.startedBy ? quest.startedBy.split(',').map(s => Number(s.trim())).filter(Boolean) : [];
+const finishedByEntries = quest.finishedBy ? quest.finishedBy.split(',').map(s => Number(s.trim())).filter(Boolean) : [];
+
+// Fork-specific overlays — hand-curated. As we ship more PRs, append entries here.
+// Eventually this lives in a small `fork-notes.json` keyed by entry id.
+const forkNotes: Record<number, { title: string; body: string; pr?: { number: number; url: string } }> = {
+  4322: {
+    title: 'Marshal Windsor escort no longer freezes at the Jaz cell',
+    body:
+      'Upstream cmangos uses an edge-triggered SPECIAL flag for the cell-warden death triggers — when Jaz and Ograbisi died in the same AoE tick, only the first death registered and Windsor stayed paused indefinitely, soft-locking the Onyxia attunement chain on that character. ' +
+      'Our build replaces the signal with per-cell GuidSet drains so AoE, simultaneous, and out-of-order kills all advance the escort correctly. Vanilla intent ("both Jaz and Ograbisi must die") is preserved.',
+    pr: { number: 20, url: 'https://github.com/xunholy/cmangos-classic/pull/20' }
+  }
+};
+const forkNote = forkNotes[quest.entry];
+
+const rewardChoices = [
+  [quest.rewChoiceItemId1, quest.rewChoiceItemCount1],
+  [quest.rewChoiceItemId2, quest.rewChoiceItemCount2],
+  [quest.rewChoiceItemId3, quest.rewChoiceItemCount3],
+  [quest.rewChoiceItemId4, quest.rewChoiceItemCount4],
+  [quest.rewChoiceItemId5, quest.rewChoiceItemCount5],
+  [quest.rewChoiceItemId6, quest.rewChoiceItemCount6]
+].filter(([id]) => id);
+
+const rewards = [
+  [quest.rewItemId1, quest.rewItemCount1],
+  [quest.rewItemId2, quest.rewItemCount2],
+  [quest.rewItemId3, quest.rewItemCount3],
+  [quest.rewItemId4, quest.rewItemCount4]
+].filter(([id]) => id);
+---
+
+<BaseLayout
+  title={`${quest.title} — Quest #${quest.entry} — Emberstone Database`}
+  description={(quest.objectives || quest.details || '').slice(0, 160)}
+>
+  <Container size="lg">
+    <EntityHeader
+      kind="Quest"
+      id={quest.entry}
+      name={quest.title}
+      faction={faction}
+      level={{ min: quest.minLevel || quest.questLevel }}
+    />
+
+    <div class="grid lg:grid-cols-[1fr,18rem] gap-10">
+      <article class="space-y-8">
+        {forkNote && (
+          <RevealOnScroll>
+            <ForkNote title={forkNote.title} pr={forkNote.pr}>
+              <p set:html={forkNote.body.replace(/\n/g, '<br/>')}></p>
+            </ForkNote>
+          </RevealOnScroll>
+        )}
+
+        {quest.objectives && (
+          <section>
+            <h2 class="font-serif text-xl text-ash-100 mb-3">Objectives</h2>
+            <p class="text-ash-300 leading-relaxed">{quest.objectives}</p>
+          </section>
+        )}
+
+        {quest.details && (
+          <section>
+            <h2 class="font-serif text-xl text-ash-100 mb-3">Description</h2>
+            <p class="text-ash-300 leading-relaxed whitespace-pre-line">{quest.details}</p>
+          </section>
+        )}
+
+        {quest.offerRewardText && (
+          <section>
+            <h2 class="font-serif text-xl text-ash-100 mb-3">Reward dialogue</h2>
+            <blockquote class="border-l-2 border-ember-700/60 pl-4 text-ash-300 italic">
+              {quest.offerRewardText}
+            </blockquote>
+          </section>
+        )}
+
+        {(rewards.length > 0 || rewardChoices.length > 0 || quest.rewXP || quest.rewOrReqMoney) && (
+          <section>
+            <h2 class="font-serif text-xl text-ash-100 mb-3">Rewards</h2>
+            <div class="grid sm:grid-cols-2 gap-3">
+              {!!quest.rewXP && (
+                <div class="rounded-md border border-ash-800 bg-bg-surface/70 p-3">
+                  <div class="text-[10px] uppercase tracking-widest text-ash-500">Experience</div>
+                  <div class="mt-1 text-ash-50 font-medium">{quest.rewXP.toLocaleString()} XP</div>
+                </div>
+              )}
+              {!!quest.rewOrReqMoney && (
+                <div class="rounded-md border border-ash-800 bg-bg-surface/70 p-3">
+                  <div class="text-[10px] uppercase tracking-widest text-ash-500">
+                    {quest.rewOrReqMoney > 0 ? 'Money reward' : 'Cost'}
+                  </div>
+                  <div class="mt-1 text-ash-50 font-medium">{formatMoney(Math.abs(quest.rewOrReqMoney))}</div>
+                </div>
+              )}
+              {rewards.map(([itemId, count]) => (
+                <div class="rounded-md border border-ash-800 bg-bg-surface/70 p-3">
+                  <div class="text-[10px] uppercase tracking-widest text-ash-500">Given</div>
+                  <div class="mt-1">
+                    <WowheadLink kind="item" id={itemId}>Item #{itemId}</WowheadLink>
+                    {count > 1 && <span class="text-ash-500"> × {count}</span>}
+                  </div>
+                </div>
+              ))}
+              {rewardChoices.length > 0 && (
+                <div class="sm:col-span-2 rounded-md border border-ash-800 bg-bg-surface/70 p-3">
+                  <div class="text-[10px] uppercase tracking-widest text-ash-500">Choice (pick one)</div>
+                  <ul class="mt-2 flex flex-wrap gap-2">
+                    {rewardChoices.map(([itemId, count]) => (
+                      <li>
+                        <WowheadLink kind="item" id={itemId} class="text-sm">
+                          Item #{itemId}{count > 1 ? ` × ${count}` : ''}
+                        </WowheadLink>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {(startedByEntries.length > 0 || finishedByEntries.length > 0) && (
+          <section>
+            <h2 class="font-serif text-xl text-ash-100 mb-3">Givers & turn-ins</h2>
+            <div class="grid sm:grid-cols-2 gap-3">
+              {startedByEntries.length > 0 && (
+                <div class="rounded-md border border-ash-800 bg-bg-surface/70 p-4">
+                  <div class="text-[10px] uppercase tracking-widest text-ash-500">Started by</div>
+                  <ul class="mt-2 space-y-1 text-sm">
+                    {startedByEntries.map(eid => {
+                      const npc = getNpc(eid);
+                      return (
+                        <li>
+                          <a href={`/db/npcs/${eid}`} class="text-ember-300 hover:text-ember-200">
+                            {npc?.name ?? `NPC #${eid}`}
+                          </a>
+                          {npc?.subname && <span class="text-ash-500"> &lt;{npc.subname}&gt;</span>}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+              {finishedByEntries.length > 0 && (
+                <div class="rounded-md border border-ash-800 bg-bg-surface/70 p-4">
+                  <div class="text-[10px] uppercase tracking-widest text-ash-500">Turned in to</div>
+                  <ul class="mt-2 space-y-1 text-sm">
+                    {finishedByEntries.map(eid => {
+                      const npc = getNpc(eid);
+                      return (
+                        <li>
+                          <a href={`/db/npcs/${eid}`} class="text-ember-300 hover:text-ember-200">
+                            {npc?.name ?? `NPC #${eid}`}
+                          </a>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {(quest.prevQuestId || quest.nextQuestId) && (
+          <section>
+            <h2 class="font-serif text-xl text-ash-100 mb-3">Quest chain</h2>
+            <ol class="space-y-1.5 text-sm">
+              {quest.prevQuestId !== 0 && (
+                <li>
+                  ← <a href={`/db/quests/${quest.prevQuestId}`} class="text-ember-300 hover:text-ember-200">Previous: #{quest.prevQuestId}</a>
+                </li>
+              )}
+              <li class="text-ash-100">• <strong>{quest.title}</strong> <span class="text-ash-500">(you are here)</span></li>
+              {quest.nextQuestId !== 0 && (
+                <li>
+                  → <a href={`/db/quests/${quest.nextQuestId}`} class="text-ember-300 hover:text-ember-200">Next: #{quest.nextQuestId}</a>
+                </li>
+              )}
+            </ol>
+          </section>
+        )}
+      </article>
+
+      <SideMeta
+        title="Quest metadata"
+        rows={[
+          { label: 'Entry',         value: quest.entry, mono: true },
+          { label: 'Faction',       value: faction.charAt(0).toUpperCase() + faction.slice(1) },
+          { label: 'Min level',     value: quest.minLevel || '—' },
+          { label: 'Quest level',   value: quest.questLevel || '—' },
+          { label: 'Type',          value: quest.type },
+          { label: 'Required race', value: quest.requiredRaces || 'Any' },
+          { label: 'XP reward',     value: quest.rewXP ? quest.rewXP.toLocaleString() : '—' },
+          { label: 'Zone sort',     value: quest.zoneOrSort }
+        ]}
+      />
+    </div>
+
+    <div class="mt-12 flex items-center gap-3 text-xs text-ash-500">
+      <WowheadLink kind="quest" id={quest.entry}>View on Wowhead</WowheadLink>
+      <span>·</span>
+      <a href="/db/quests" class="hover:text-ember-300">← All quests</a>
+    </div>
+  </Container>
+</BaseLayout>

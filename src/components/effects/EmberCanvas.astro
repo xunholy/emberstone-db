@@ -1,0 +1,132 @@
+---
+/**
+ * Animated ember-field background. Pure canvas, no library. Each ember
+ * is a small radial-gradient particle that drifts upward with a slight
+ * sinusoidal sway, fading as it rises. The field self-throttles via
+ * requestAnimationFrame, respects prefers-reduced-motion, and pauses
+ * automatically when the tab is hidden so it never costs anything when
+ * the user isn't watching.
+ */
+interface Props {
+  /** Particle density (default 60). Higher = more atmospheric, more CPU. */
+  density?: number;
+  /** Optional className for sizing (defaults to full parent). */
+  class?: string;
+}
+const { density = 60, class: cls = 'absolute inset-0' } = Astro.props;
+---
+<canvas
+  data-ember-canvas
+  data-density={density}
+  class:list={['pointer-events-none', cls]}
+  aria-hidden="true"
+>
+</canvas>
+
+<script>
+  // Self-contained, IIFE-style — no module imports, runs once per page.
+  // Multiple <EmberCanvas> on a page all use this same handler safely.
+  const init = () => {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) return;
+
+    document.querySelectorAll<HTMLCanvasElement>('canvas[data-ember-canvas]').forEach((canvas) => {
+      if (canvas.dataset.embered) return;
+      canvas.dataset.embered = '1';
+
+      const ctx = canvas.getContext('2d', { alpha: true });
+      if (!ctx) return;
+
+      const density = Math.max(10, Number(canvas.dataset.density ?? 60));
+      let particles: Array<{
+        x: number; y: number; vx: number; vy: number;
+        r: number; life: number; max: number; hue: number; alpha: number;
+      }> = [];
+
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      function size() {
+        const parent = canvas.parentElement ?? document.body;
+        const { width, height } = parent.getBoundingClientRect();
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        if (!ctx) return;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function spawn(x?: number, y?: number) {
+        const w = canvas.clientWidth || 1;
+        const h = canvas.clientHeight || 1;
+        particles.push({
+          x: x ?? Math.random() * w,
+          y: y ?? h + Math.random() * 40,
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: -0.25 - Math.random() * 0.55,
+          r: 0.6 + Math.random() * 2.2,
+          life: 0,
+          max: 220 + Math.random() * 300,
+          hue: 32 + Math.random() * 14,         // warm amber-orange range
+          alpha: 0.5 + Math.random() * 0.45
+        });
+      }
+
+      function seed() {
+        const target = Math.round(density * Math.min(1.4, (canvas.clientWidth || 0) / 900));
+        while (particles.length < target) {
+          spawn(undefined, Math.random() * (canvas.clientHeight || 0));
+        }
+      }
+
+      function step() {
+        if (!ctx) return;
+        const w = canvas.clientWidth, h = canvas.clientHeight;
+        ctx.clearRect(0, 0, w, h);
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.life++;
+          // gentle horizontal sway
+          p.x += p.vx + Math.sin((p.life + i * 30) * 0.012) * 0.18;
+          p.y += p.vy;
+          // accelerate slightly upward as the ember "lifts"
+          p.vy *= 1.001;
+          const t = p.life / p.max;
+          const a = (1 - t) * p.alpha;
+          // glow disk + tiny bright core
+          const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 5);
+          grad.addColorStop(0,    `hsla(${p.hue}, 95%, 65%, ${a})`);
+          grad.addColorStop(0.4,  `hsla(${p.hue}, 85%, 50%, ${a * 0.4})`);
+          grad.addColorStop(1,    `hsla(${p.hue}, 80%, 40%, 0)`);
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r * 5, 0, Math.PI * 2);
+          ctx.fill();
+
+          if (p.y < -10 || p.life >= p.max) {
+            particles.splice(i, 1);
+            spawn();
+          }
+        }
+        raf = requestAnimationFrame(step);
+      }
+
+      let raf = 0;
+      const onResize = () => { size(); seed(); };
+      const onVisibility = () => {
+        if (document.hidden) cancelAnimationFrame(raf);
+        else raf = requestAnimationFrame(step);
+      };
+
+      size();
+      seed();
+      raf = requestAnimationFrame(step);
+
+      window.addEventListener('resize', onResize, { passive: true });
+      document.addEventListener('visibilitychange', onVisibility);
+    });
+  };
+
+  // Init now (in case nav already happened) and on every view-transition.
+  init();
+  document.addEventListener('astro:page-load', init);
+</script>

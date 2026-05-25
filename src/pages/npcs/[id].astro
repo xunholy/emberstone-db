@@ -1,0 +1,148 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Container from '~/components/layout/Container.astro';
+import EntityHeader from '~/components/entities/EntityHeader.astro';
+import ForkNote from '~/components/entities/ForkNote.astro';
+import SideMeta from '~/components/entities/SideMeta.astro';
+import WowheadLink from '~/components/entities/WowheadLink.astro';
+import { listNpcs, getNpc, getQuest } from '~/lib/db/data';
+
+export const prerender = true;
+
+export async function getStaticPaths() {
+  return listNpcs().map(n => ({ params: { id: String(n.entry) } }));
+}
+
+const { id } = Astro.params;
+const npc = getNpc(Number(id));
+if (!npc) {
+  return Astro.redirect('/db/404');
+}
+const isEmberstoneCustom = !!npc.emberstoneCustom || (npc.entry >= 190000 && npc.entry < 200000);
+
+const startsQ = npc.startsQuests ? npc.startsQuests.split(',').map(s => Number(s.trim())).filter(Boolean) : [];
+const endsQ   = npc.endsQuests   ? npc.endsQuests.split(',').map(s => Number(s.trim())).filter(Boolean) : [];
+
+// Curated callouts for high-value NPCs in the Emberstone fork.
+const npcNotes: Record<number, { title: string; body: string }> = {
+  190014: {
+    title: 'Attuner of Paths — XP rate, hardcore challenges, dual specialization',
+    body:
+      'Emberstone-specific NPC that consolidates three formerly-separate modules into a single gossip. ' +
+      'Players can adjust XP rate (0.1×–100×), opt into hardcore challenges (single life, drop loot on death, self-found, PvP toggle), ' +
+      'or unlock dual specialization for free (server-side option Dualspec.Cost = 0). ' +
+      'Source: src/modules/attunement in xunholy/cmangos-classic.'
+  },
+  9023: {
+    title: 'Marshal Reginald Windsor — Jail Break! escort patched',
+    body:
+      'The escort that begins Quest #4322 (Jail Break!) was freezing at the Jaz cell when AoE pulls killed Jaz and Ograbisi in the same server tick. ' +
+      'Patched in our build to use drain-on-empty GuidSets so the escort always advances correctly.'
+  }
+};
+const note = npcNotes[npc.entry];
+---
+
+<BaseLayout
+  title={`${npc.name} — NPC #${npc.entry} — Emberstone Database`}
+  description={npc.subname ? `${npc.name}, ${npc.subname}` : `NPC ${npc.name}.`}
+>
+  <Container size="lg">
+    <EntityHeader
+      kind="NPC"
+      id={npc.entry}
+      name={npc.name}
+      subname={npc.subname}
+      level={{ min: npc.minLevel, max: npc.maxLevel }}
+      emberstoneCustom={isEmberstoneCustom}
+    />
+
+    <div class="grid lg:grid-cols-[1fr,18rem] gap-10">
+      <article class="space-y-8">
+        {note && (
+          <ForkNote title={note.title}>
+            <p>{note.body}</p>
+          </ForkNote>
+        )}
+
+        {startsQ.length > 0 && (
+          <section>
+            <h2 class="font-serif text-xl text-ash-100 mb-3">Offers quests</h2>
+            <ul class="grid sm:grid-cols-2 gap-2">
+              {startsQ.map(qid => {
+                const q = getQuest(qid);
+                return (
+                  <li class="rounded-md border border-ash-800 bg-bg-surface/70 p-3">
+                    <a href={`/db/quests/${qid}`} class="text-ember-300 hover:text-ember-200">
+                      {q?.title ?? `Quest #${qid}`}
+                    </a>
+                    {q?.minLevel && (
+                      <div class="text-xs text-ash-500 mt-0.5">Min level {q.minLevel}</div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
+        {endsQ.length > 0 && (
+          <section>
+            <h2 class="font-serif text-xl text-ash-100 mb-3">Turns in</h2>
+            <ul class="grid sm:grid-cols-2 gap-2">
+              {endsQ.map(qid => {
+                const q = getQuest(qid);
+                return (
+                  <li class="rounded-md border border-ash-800 bg-bg-surface/70 p-3">
+                    <a href={`/db/quests/${qid}`} class="text-ember-300 hover:text-ember-200">
+                      {q?.title ?? `Quest #${qid}`}
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
+        {npc.scriptName && (
+          <section>
+            <h2 class="font-serif text-xl text-ash-100 mb-3">Script binding</h2>
+            <p class="text-sm text-ash-400 leading-relaxed">
+              This NPC is bound to ScriptDevAI script
+              <code class="font-mono text-ember-300 ml-1">{npc.scriptName}</code>. The
+              source lives in
+              <a href={`https://github.com/xunholy/cmangos-classic/search?q=${encodeURIComponent(npc.scriptName)}`}
+                 class="text-ember-300 hover:text-ember-200 ml-1"
+                 target="_blank" rel="noopener noreferrer">
+                xunholy/cmangos-classic
+              </a>.
+            </p>
+          </section>
+        )}
+      </article>
+
+      <SideMeta
+        title="NPC metadata"
+        rows={[
+          { label: 'Entry',     value: npc.entry, mono: true },
+          { label: 'Min level', value: npc.minLevel },
+          { label: 'Max level', value: npc.maxLevel },
+          { label: 'Faction',   value: npc.faction },
+          { label: 'Rank',      value: ['Normal', 'Elite', 'Rare elite', 'Boss', 'Rare'][npc.rank] ?? `Rank ${npc.rank}` },
+          { label: 'Type',      value: npc.type },
+          ...(isEmberstoneCustom ? [{ label: 'Source', value: 'Emberstone' }] : [])
+        ]}
+      />
+    </div>
+
+    <div class="mt-12 flex items-center gap-3 text-xs text-ash-500">
+      {!isEmberstoneCustom && (
+        <>
+          <WowheadLink kind="npc" id={npc.entry}>View on Wowhead</WowheadLink>
+          <span>·</span>
+        </>
+      )}
+      <a href="/db/npcs" class="hover:text-ember-300">← All NPCs</a>
+    </div>
+  </Container>
+</BaseLayout>

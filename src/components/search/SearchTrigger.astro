@@ -1,0 +1,36 @@
+---
+/**
+ * Visible button that opens the Cmd-K palette. On desktop it shows the
+ * keyboard hint; on mobile collapses to an icon. Clicking dispatches
+ * the same custom event the global ⌘K / `/` shortcut fires.
+ */
+---
+<button
+  type="button"
+  id="search-trigger"
+  class="inline-flex items-center gap-3 h-9 pl-3 pr-2 rounded-md
+         border border-ash-800 bg-bg-inset/70 text-ash-400 text-sm
+         hover:border-ember-800 hover:text-ash-100 hover:shadow-soft
+         transition-all duration-300 ease-out-expo
+         focus:outline-none focus:ring-2 focus:ring-ember-700/60
+         w-9 sm:w-64 justify-start"
+  aria-label="Search database — press / or Cmd-K"
+>
+  <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <circle cx="11" cy="11" r="7"/>
+    <path d="m21 21-4.3-4.3" stroke-linecap="round"/>
+  </svg>
+  <span class="hidden sm:inline truncate">Search quests, items, NPCs…</span>
+  <span class="hidden sm:inline-flex items-center gap-1 ml-auto text-[10px] text-ash-500">
+    <kbd class="inline-flex h-5 min-w-[20px] items-center justify-center rounded
+                border border-ash-700 bg-bg-inset px-1.5 font-mono">⌘</kbd>
+    <kbd class="inline-flex h-5 min-w-[20px] items-center justify-center rounded
+                border border-ash-700 bg-bg-inset px-1.5 font-mono">K</kbd>
+  </span>
+</button>
+
+<script>
+  document.getElementById('search-trigger')?.addEventListener('click', () => {
+    window.dispatchEvent(new CustomEvent('emberstone:open-search'));
+  });
+</script>

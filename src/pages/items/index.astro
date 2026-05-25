@@ -1,0 +1,29 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Container from '~/components/layout/Container.astro';
+import EntityList from '~/components/entities/EntityList.astro';
+import { listItems } from '~/lib/db/data';
+import { QUALITY_NAME } from '~/lib/quality';
+
+const PAGE = 100;
+const all = listItems();
+const rows = all.slice(0, PAGE).map(i => ({
+  id: i.entry,
+  name: i.name,
+  meta: `${QUALITY_NAME[(i.quality as 0)] ?? 'Common'} · iLvl ${i.itemLevel || '?'}`,
+  level: i.requiredLevel,
+  emberstoneCustom: i.emberstoneCustom
+}));
+---
+<BaseLayout title="Items — Emberstone Database">
+  <Container size="lg" class="mt-10">
+    <h1 class="font-serif text-4xl tracking-tight text-ash-50">Items</h1>
+    <p class="mt-2 text-ash-400 max-w-2xl">
+      Weapons, armor, recipes, consumables, quest items — anything that can sit in a
+      character's inventory. Search across all {all.length.toLocaleString()} entries via <kbd class="px-1.5 py-0.5 text-[10px] rounded bg-bg-inset border border-ash-700 font-mono">⌘ K</kbd>.
+    </p>
+    <div class="mt-8">
+      <EntityList kind="items" rows={rows} title="All items" />
+    </div>
+  </Container>
+</BaseLayout>

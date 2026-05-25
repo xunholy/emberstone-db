@@ -1,0 +1,58 @@
+---
+/**
+ * Generic paginated entity table used by all /db/{kind} list pages.
+ * No client JS — sort/filter is left to the search palette and per-row
+ * navigation. Keeps server payload tiny.
+ */
+import { Badge } from '~/components/ui/badge';
+type Row = {
+  id: number;
+  name: string;
+  meta?: string;
+  level?: number;
+  emberstoneCustom?: boolean;
+};
+interface Props {
+  kind: 'quests' | 'items' | 'npcs' | 'spells' | 'zones';
+  rows: Row[];
+  title: string;
+}
+const { kind, rows, title } = Astro.props;
+---
+
+<div class="rounded-lg border border-ash-800 bg-bg-surface/80 overflow-hidden">
+  <div class="flex items-center justify-between gap-4 px-5 py-4 border-b border-ash-800">
+    <div>
+      <h2 class="font-serif text-xl text-ash-50">{title}</h2>
+      <p class="text-xs text-ash-500 mt-0.5">{rows.length.toLocaleString()} entries</p>
+    </div>
+    <div class="text-[10px] uppercase tracking-widest text-ash-500">
+      Tap any row to open
+    </div>
+  </div>
+  <ul class="divide-y divide-ash-800/70">
+    {rows.map(r => (
+      <li>
+        <a
+          href={`/db/${kind}/${r.id}`}
+          class="flex items-center gap-4 px-5 py-3 hover:bg-ash-800/30 transition-colors group"
+        >
+          <span class="font-mono text-xs text-ash-500 w-14 shrink-0">#{r.id}</span>
+          <span class="flex-1 min-w-0">
+            <span class="block text-sm text-ash-100 truncate group-hover:text-ember-200">{r.name}</span>
+            {r.meta && <span class="block text-xs text-ash-500 truncate">{r.meta}</span>}
+          </span>
+          {typeof r.level === 'number' && r.level > 0 && (
+            <Badge>Lv {r.level}</Badge>
+          )}
+          {r.emberstoneCustom && (
+            <Badge tone="ember">Emberstone</Badge>
+          )}
+          <svg class="h-3 w-3 text-ash-600 group-hover:text-ember-400 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+      </li>
+    ))}
+  </ul>
+</div>

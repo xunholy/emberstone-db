@@ -1,0 +1,9 @@
+---
+import { searchIndex } from '~/lib/db/data';
+import { CommandPalette } from './CommandPalette';
+
+const entries = searchIndex();
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+
+<CommandPalette client:load entries={entries} base={base} />

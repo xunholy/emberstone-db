@@ -1,0 +1,38 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Container from '~/components/layout/Container.astro';
+import EmberCanvas from '~/components/effects/EmberCanvas.astro';
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+<BaseLayout title="Lost in the ash — Emberstone Database">
+  <section class="relative isolate min-h-[70vh] flex items-center overflow-hidden">
+    <EmberCanvas density={40} />
+    <Container size="md" class="relative z-content text-center">
+      <div class="text-[10px] uppercase tracking-widest text-ash-500">404 · entry not found</div>
+      <h1 class="mt-4 font-serif text-6xl sm:text-7xl tracking-tight text-ash-50">
+        <span class="text-gradient-shimmer">Lost in the ash.</span>
+      </h1>
+      <p class="mt-6 text-ash-400 max-w-md mx-auto">
+        That quest, item, or NPC doesn't exist in our world DB — or it lives under
+        a different entry ID. Try the search palette.
+      </p>
+      <div class="mt-8 flex items-center justify-center gap-3">
+        <button
+          id="hero-404-search"
+          type="button"
+          class="inline-flex items-center gap-2 h-10 px-5 rounded-md bg-gold-gradient text-bg font-medium shadow-glow hover:shadow-glow-lg transition-all"
+        >
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3" stroke-linecap="round"/></svg>
+          Search
+        </button>
+        <a href={`${base}/`} class="text-sm text-ash-300 hover:text-ember-300">← Back home</a>
+      </div>
+    </Container>
+  </section>
+
+  <script>
+    document.getElementById('hero-404-search')?.addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('emberstone:open-search'));
+    });
+  </script>
+</BaseLayout>

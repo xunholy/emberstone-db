@@ -1,0 +1,122 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Fonts ─────────────────────────────────────────────────────────────
+   Self-host the variable Geist + EB Garamond combo to keep typography
+   crisp without an external request on first paint. Loaded with
+   font-display:swap so we never block render on them — the fallback
+   stack (Inter/Georgia) is set up to be visually close enough that the
+   font swap is barely perceptible.
+   The actual .woff2 binaries are vendored under public/fonts; if any
+   are missing the browser silently falls back, which is fine. */
+@font-face {
+  font-family: 'Geist Sans';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/db/fonts/GeistVariable.woff2') format('woff2-variations');
+}
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/db/fonts/GeistMonoVariable.woff2') format('woff2-variations');
+}
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('/db/fonts/EBGaramondVariable.woff2') format('woff2-variations');
+}
+
+/* ── Base layer ───────────────────────────────────────────────────── */
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-bg text-ash-100 font-sans antialiased min-h-screen;
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+  }
+  /* Subtle warm grain over the background to keep large dark surfaces
+     from looking flat. Pure CSS — no image request. */
+  body::before {
+    content: '';
+    @apply pointer-events-none fixed inset-0 z-0;
+    background-image:
+      radial-gradient(circle at 20% -10%, rgba(201, 168, 76, 0.06) 0%, transparent 45%),
+      radial-gradient(circle at 80% 110%, rgba(201, 168, 76, 0.04) 0%, transparent 50%);
+  }
+  ::selection {
+    @apply bg-ember-500/30 text-ember-50;
+  }
+  /* Custom scrollbar — thin, brand-tinted on dark */
+  *::-webkit-scrollbar { width: 10px; height: 10px; }
+  *::-webkit-scrollbar-track { @apply bg-bg-inset; }
+  *::-webkit-scrollbar-thumb { @apply bg-ash-700 rounded-full; }
+  *::-webkit-scrollbar-thumb:hover { @apply bg-ember-700; }
+  :focus-visible {
+    @apply outline-none ring-2 ring-ember-500/60 ring-offset-2 ring-offset-bg;
+  }
+}
+
+/* ── Component patterns ──────────────────────────────────────────── */
+@layer components {
+  /* Subtle ember border + glow on hover. The shadow blur expands on
+     hover for a "warming up" feel rather than a hard color change. */
+  .ember-card {
+    @apply relative rounded-lg border border-ash-800 bg-bg-surface
+           transition-all duration-500 ease-out-expo
+           hover:border-ember-800 hover:shadow-glow
+           hover:-translate-y-0.5;
+  }
+  .ember-card-inner {
+    @apply relative z-10;
+  }
+  /* The shimmering gold gradient used on hero headings */
+  .text-gradient-gold {
+    @apply bg-gold-gradient bg-clip-text text-transparent;
+    background-size: 200% auto;
+  }
+  .text-gradient-shimmer {
+    @apply text-gradient-gold animate-shimmer;
+  }
+  /* Sectional divider with a faint ember line */
+  .ember-divider {
+    @apply h-px w-full bg-gradient-to-r from-transparent via-ember-700/40 to-transparent;
+  }
+}
+
+/* ── Utilities ───────────────────────────────────────────────────── */
+@layer utilities {
+  .mask-fade-b {
+    -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+            mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+  }
+  .mask-fade-t {
+    -webkit-mask-image: linear-gradient(to top, black 60%, transparent 100%);
+            mask-image: linear-gradient(to top, black 60%, transparent 100%);
+  }
+  /* Lets the canvas embers sit between bg and content without z-index gymnastics */
+  .z-fx { z-index: 1; }
+  .z-content { z-index: 2; }
+}
+
+/* ── Reduced motion ─────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

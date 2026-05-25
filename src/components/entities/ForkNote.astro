@@ -1,0 +1,35 @@
+---
+/**
+ * Inline call-out for fork-specific notes about an otherwise-stock
+ * entry. Used on quest/item/npc pages when the Emberstone build
+ * differs from upstream behaviour.
+ */
+interface Props {
+  title: string;
+  pr?: { number: number; url: string };
+}
+const { title, pr } = Astro.props;
+---
+<aside class="my-6 rounded-lg border border-ember-800/60 bg-ember-900/15 p-5 shadow-soft">
+  <div class="flex items-center gap-2 text-[10px] uppercase tracking-widest text-ember-300">
+    <svg class="h-3 w-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 4 7v6.5C4 18.2 7.6 22 12 22s8-3.8 8-8.5V7l-8-5Z"/></svg>
+    Emberstone fork note
+  </div>
+  <h3 class="mt-2 font-medium text-ember-100">{title}</h3>
+  <div class="mt-2 text-sm text-ash-300 leading-relaxed prose-emberstone">
+    <slot />
+  </div>
+  {pr && (
+    <a
+      href={pr.url}
+      class="inline-flex items-center gap-1.5 mt-3 text-xs text-ember-300 hover:text-ember-200"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      Patched in PR #{pr.number}
+      <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M7 17 17 7M9 7h8v8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
+  )}
+</aside>

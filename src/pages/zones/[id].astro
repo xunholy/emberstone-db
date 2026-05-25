@@ -1,0 +1,33 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Container from '~/components/layout/Container.astro';
+import EntityHeader from '~/components/entities/EntityHeader.astro';
+
+// Stub: a future iteration of this page will aggregate quests/NPCs
+// filtered by zone_id. The data layer needs an extra column in the
+// snapshot (zone_id resolved against quest_template.ZoneOrSort and
+// creature_template.spawnArea) before we can populate this — but the
+// route exists today so links from /zones don't 404.
+//
+// Prerendered for every zone enumerated in /zones/index.astro so the
+// static build is fully complete (no runtime SSR needed).
+export const prerender = true;
+export async function getStaticPaths() {
+  const ids = [
+    12, 38, 40, 44, 47, 51, 1583, 1584, 215, 14, 405,
+    357, 16, 28, 139, 2017, 2057, 2159, 2677
+  ];
+  return ids.map(id => ({ params: { id: String(id) } }));
+}
+const { id } = Astro.params;
+---
+<BaseLayout title={`Zone #${id} — Emberstone Database`}>
+  <Container size="lg">
+    <EntityHeader kind="Zone" id={Number(id)} name={`Zone ${id}`} />
+    <p class="mt-4 text-ash-400 max-w-xl">
+      Per-zone content rollups (quests, NPCs, dungeons) are coming. For now,
+      use the search palette (<kbd class="px-1.5 py-0.5 text-[10px] rounded bg-bg-inset border border-ash-700 font-mono">⌘ K</kbd>)
+      to find what you need by name.
+    </p>
+  </Container>
+</BaseLayout>

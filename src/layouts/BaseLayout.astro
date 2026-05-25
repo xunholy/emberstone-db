@@ -1,0 +1,91 @@
+---
+import '~/styles/globals.css';
+import Nav from '~/components/layout/Nav.astro';
+import Footer from '~/components/layout/Footer.astro';
+import CommandPaletteRoot from '~/components/search/CommandPaletteRoot.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+  heroEmbers?: boolean;
+}
+const {
+  title = 'Emberstone Database',
+  description = 'Classic WoW (1.12.1) reference for the Emberstone realm — quests, items, NPCs, spells, and Emberstone-specific systems.',
+  heroEmbers = false
+} = Astro.props;
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const canonical = new URL(Astro.url.pathname, Astro.site).toString();
+---
+
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0a0805" />
+    <meta name="color-scheme" content="dark" />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href={`${base}/favicon.svg`} type="image/svg+xml" />
+    <link rel="manifest" href={`${base}/manifest.webmanifest`} />
+
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={`${Astro.site}db/og-image.png`} />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Wowhead Classic tooltips: hover/auto-render link tooltips for
+         stock 1.12.1 quests/items/npcs/spells. Loaded once, idle. -->
+    <script is:inline>
+      var whTooltips = { colorLinks: true, iconizeLinks: true, renameLinks: true };
+    </script>
+    <script
+      is:inline
+      defer
+      src="https://wow.zamimg.com/widgets/power.js"
+    ></script>
+
+    <!-- Astro view transitions for buttery client navigation -->
+    <meta name="generator" content={Astro.generator} />
+  </head>
+  <body>
+    {heroEmbers && (
+      <div
+        class="fixed inset-x-0 top-0 -z-10 h-[120vh] pointer-events-none
+               bg-hero-spotlight mask-fade-b"
+        aria-hidden="true"
+      />
+    )}
+
+    <Nav />
+
+    <main class="relative z-content">
+      <slot />
+    </main>
+
+    <Footer />
+
+    <CommandPaletteRoot />
+
+    <!-- Tiny script: keyboard shortcut '/' or 'k' to surface the palette -->
+    <script>
+      const opener = (e: KeyboardEvent) => {
+        const isMac = navigator.platform.toLowerCase().includes('mac');
+        const cmdK = (isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === 'k';
+        const slash = e.key === '/' && !(e.target as HTMLElement | null)?.closest?.('input, textarea, [contenteditable]');
+        if (cmdK || slash) {
+          e.preventDefault();
+          window.dispatchEvent(new CustomEvent('emberstone:open-search'));
+        }
+      };
+      window.addEventListener('keydown', opener);
+    </script>
+  </body>
+</html>

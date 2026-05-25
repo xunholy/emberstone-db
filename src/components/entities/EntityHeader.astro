@@ -1,0 +1,62 @@
+---
+/**
+ * Shared header on detail pages — large title, id chip, faction/level
+ * meta strip, optional Emberstone-custom call-out.
+ */
+type Faction = 'alliance' | 'horde' | 'neutral';
+interface Props {
+  kind: string;
+  id: number;
+  name: string;
+  subname?: string;
+  faction?: Faction;
+  level?: { min: number; max?: number };
+  emberstoneCustom?: boolean;
+}
+const { kind, id, name, subname, faction, level, emberstoneCustom = false } = Astro.props;
+const factionStyle: Record<Faction, string> = {
+  alliance: 'border-faction-alliance/60 bg-faction-alliance/10 text-blue-200',
+  horde:    'border-faction-horde/60 bg-faction-horde/10 text-red-300',
+  neutral:  'border-ash-700 bg-ash-800/50 text-ash-200'
+};
+---
+<header class="relative pt-12 pb-8" data-sheen-host>
+  <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-ember-700/40 to-transparent" aria-hidden="true"></div>
+  <div class="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-widest text-ash-500">
+    <span>{kind}</span>
+    <span class="text-ash-700">·</span>
+    <span class="font-mono">#{id}</span>
+    {faction && (
+      <>
+        <span class="text-ash-700">·</span>
+        <span class={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${factionStyle[faction]}`}>
+          {faction[0].toUpperCase() + faction.slice(1)}
+        </span>
+      </>
+    )}
+    {level && (
+      <>
+        <span class="text-ash-700">·</span>
+        <span class="rounded-full border border-ash-700 bg-ash-800/50 text-ash-200 px-2 py-0.5">
+          Lv {level.min}{level.max && level.max !== level.min ? `–${level.max}` : ''}
+        </span>
+      </>
+    )}
+    {emberstoneCustom && (
+      <>
+        <span class="text-ash-700">·</span>
+        <span class="inline-flex items-center gap-1 rounded-full border border-ember-700/70 bg-ember-900/40 px-2 py-0.5 text-ember-200">
+          <svg class="h-2.5 w-2.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 4 7v6.5C4 18.2 7.6 22 12 22s8-3.8 8-8.5V7l-8-5Z"/></svg>
+          Emberstone
+        </span>
+      </>
+    )}
+  </div>
+
+  <h1 class="mt-3 font-serif text-4xl sm:text-5xl tracking-tight text-ash-50">
+    {name}
+  </h1>
+  {subname && (
+    <p class="mt-1 text-ash-400 italic">&lt;{subname}&gt;</p>
+  )}
+</header>

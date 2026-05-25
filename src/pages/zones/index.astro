@@ -1,0 +1,59 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Container from '~/components/layout/Container.astro';
+
+// Classic vanilla zones — hand-listed (no DB table to derive from
+// cleanly in cmangos). Each links to a stub zone page that can later
+// pull quests/NPCs/instances scoped to it.
+const ZONES = [
+  // Eastern Kingdoms
+  { id: 12,  name: 'Elwynn Forest',          continent: 'Eastern Kingdoms', lvl: '1–10' },
+  { id: 38,  name: 'Loch Modan',             continent: 'Eastern Kingdoms', lvl: '10–20' },
+  { id: 40,  name: 'Westfall',               continent: 'Eastern Kingdoms', lvl: '10–20' },
+  { id: 44,  name: 'Redridge Mountains',     continent: 'Eastern Kingdoms', lvl: '15–25' },
+  { id: 47,  name: 'The Hinterlands',        continent: 'Eastern Kingdoms', lvl: '40–50' },
+  { id: 51,  name: 'Searing Gorge',          continent: 'Eastern Kingdoms', lvl: '45–55' },
+  { id: 1583,name: 'Blackrock Spire (Lower)',continent: 'Eastern Kingdoms', lvl: '55–60', dungeon: true },
+  { id: 1584,name: 'Blackrock Depths',       continent: 'Eastern Kingdoms', lvl: '52–60', dungeon: true },
+  // Kalimdor
+  { id: 215, name: 'Mulgore',                continent: 'Kalimdor', lvl: '1–10' },
+  { id: 14,  name: 'Durotar',                continent: 'Kalimdor', lvl: '1–10' },
+  { id: 405, name: 'Desolace',               continent: 'Kalimdor', lvl: '30–40' },
+  { id: 357, name: 'Feralas',                continent: 'Kalimdor', lvl: '40–50' },
+  { id: 16,  name: 'Azshara',                continent: 'Kalimdor', lvl: '45–55' },
+  { id: 28,  name: "Western Plaguelands",    continent: 'Eastern Kingdoms', lvl: '51–58' },
+  { id: 139, name: 'Eastern Plaguelands',    continent: 'Eastern Kingdoms', lvl: '53–60' },
+  { id: 2017,name: 'Stratholme',             continent: 'Eastern Kingdoms', lvl: '58–60', dungeon: true },
+  { id: 2057,name: 'Scholomance',            continent: 'Eastern Kingdoms', lvl: '58–60', dungeon: true },
+  { id: 2159,name: "Onyxia's Lair",          continent: 'Kalimdor',         lvl: '60', dungeon: true, raid: true },
+  { id: 2677,name: 'Blackwing Lair',         continent: 'Eastern Kingdoms', lvl: '60', dungeon: true, raid: true }
+];
+---
+<BaseLayout title="Zones — Emberstone Database">
+  <Container size="lg" class="mt-10">
+    <h1 class="font-serif text-4xl tracking-tight text-ash-50">Zones & dungeons</h1>
+    <p class="mt-2 text-ash-400 max-w-2xl">
+      Wander the world by region. Per-zone pages aggregate every quest, NPC and dungeon
+      encounter local to that area.
+    </p>
+    <div class="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      {ZONES.map(z => (
+        <a
+          href={`/db/zones/${z.id}`}
+          class="group rounded-md border border-ash-800 bg-bg-surface/70 p-4 hover:border-ember-800 hover:shadow-glow transition-all duration-300"
+        >
+          <div class="flex items-center justify-between text-[10px] uppercase tracking-widest text-ash-500">
+            <span>{z.continent}</span>
+            <span>Lv {z.lvl}</span>
+          </div>
+          <div class="mt-2 text-ash-100 group-hover:text-ember-200 transition-colors">{z.name}</div>
+          {z.raid ? (
+            <span class="mt-1 inline-block text-[10px] uppercase tracking-widest text-rarity-epic">Raid</span>
+          ) : z.dungeon ? (
+            <span class="mt-1 inline-block text-[10px] uppercase tracking-widest text-ember-400">Dungeon</span>
+          ) : null}
+        </a>
+      ))}
+    </div>
+  </Container>
+</BaseLayout>

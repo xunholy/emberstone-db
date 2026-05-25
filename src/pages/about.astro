@@ -1,0 +1,43 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Container from '~/components/layout/Container.astro';
+---
+<BaseLayout title="About — Emberstone Database">
+  <Container size="md" class="mt-12 prose-ash">
+    <h1 class="font-serif text-4xl tracking-tight text-ash-50">About this database</h1>
+    <div class="mt-6 space-y-4 text-ash-300 leading-relaxed">
+      <p>
+        Emberstone Database is the canonical reference for our Classic 1.12.1 realm.
+        Every quest, item, NPC, and spell shown here is derived from the live
+        world database the worldserver actually reads on startup — so if the
+        site disagrees with the game, it's the site that's stale, not the
+        server.
+      </p>
+      <p>
+        Data is dumped from MariaDB to JSON on every fork release (image push to
+        <code class="font-mono text-ember-300">ghcr.io/xunholy/cmangos-classic</code>)
+        and Astro statically renders every detail page. Stock entries get tooltips
+        from <a href="https://www.wowhead.com/classic" class="text-ember-300">Wowhead Classic</a>
+        on hover; everything Emberstone-specific is rendered natively with source
+        links into <a href="https://github.com/xunholy/cmangos-classic" class="text-ember-300">xunholy/cmangos-classic</a>.
+      </p>
+      <p>
+        The site is intentionally narrow in scope: Classic 1.12.1 only, fork-aware,
+        no AH listings or live auction tools. For account registration and
+        the realm portal, head over to
+        <a href="https://emberstone.owncloud.ai" class="text-ember-300">emberstone.owncloud.ai</a>.
+      </p>
+      <h2 class="font-serif text-2xl text-ash-50 mt-10">Built with</h2>
+      <ul class="list-disc pl-5 space-y-1">
+        <li><a href="https://astro.build" class="text-ember-300">Astro</a> + React islands</li>
+        <li><a href="https://tailwindcss.com" class="text-ember-300">Tailwind CSS</a> with a bespoke ember palette</li>
+        <li><a href="https://cmdk.paco.me" class="text-ember-300">cmdk</a> for the search palette</li>
+        <li>MariaDB 11 + mysql2 for the build-time data dump</li>
+      </ul>
+      <p class="text-ash-500 text-sm pt-4 border-t border-ash-800 mt-8">
+        World of Warcraft is a trademark of Blizzard Entertainment. This project
+        exists for education and private-server experimentation; no commercial use.
+      </p>
+    </div>
+  </Container>
+</BaseLayout>

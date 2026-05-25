@@ -1,0 +1,84 @@
+---
+import Container from './Container.astro';
+import { getSnapshot } from '~/lib/db/data';
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const snap = getSnapshot();
+const generated = new Date(snap.generatedAt);
+const generatedHuman = generated.toLocaleDateString('en-US', {
+  year: 'numeric', month: 'short', day: 'numeric'
+});
+---
+
+<footer class="mt-32 border-t border-ash-800/70 bg-bg-inset/40">
+  <div class="ember-divider opacity-50" aria-hidden="true"/>
+  <Container size="xl">
+    <div class="py-10 grid grid-cols-2 md:grid-cols-4 gap-8 text-sm">
+      <div class="col-span-2 md:col-span-1">
+        <div class="flex items-center gap-2 text-ember-300">
+          <span class="inline-block h-2 w-2 rounded-full bg-ember-400 shadow-glow animate-pulse"/>
+          <span class="font-medium">Emberstone Database</span>
+        </div>
+        <p class="mt-2 text-ash-400 leading-relaxed">
+          A Classic WoW (1.12.1) reference for the
+          <a href="https://emberstone.owncloud.ai" class="text-ember-300 hover:text-ember-200">Emberstone</a>
+          realm. All quest, item, and NPC data sourced from the live world DB.
+        </p>
+      </div>
+
+      <div>
+        <h4 class="text-xs uppercase tracking-widest text-ash-500">Browse</h4>
+        <ul class="mt-3 space-y-1.5 text-ash-300">
+          <li><a href={`${base}/quests`} class="hover:text-ember-300">Quests</a></li>
+          <li><a href={`${base}/items`}  class="hover:text-ember-300">Items</a></li>
+          <li><a href={`${base}/npcs`}   class="hover:text-ember-300">NPCs</a></li>
+          <li><a href={`${base}/spells`} class="hover:text-ember-300">Spells</a></li>
+          <li><a href={`${base}/zones`}  class="hover:text-ember-300">Zones</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 class="text-xs uppercase tracking-widest text-ash-500">Emberstone</h4>
+        <ul class="mt-3 space-y-1.5 text-ash-300">
+          <li><a href={`${base}/custom`} class="hover:text-ember-300">Custom Modules</a></li>
+          <li><a href={`${base}/changelog`} class="hover:text-ember-300">Fork Changelog</a></li>
+          <li><a href="https://emberstone.owncloud.ai" class="hover:text-ember-300">Realm Portal</a></li>
+          <li><a href="https://github.com/xunholy/cmangos-classic" class="hover:text-ember-300">Source on GitHub</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 class="text-xs uppercase tracking-widest text-ash-500">Snapshot</h4>
+        <dl class="mt-3 space-y-1.5 text-ash-300">
+          <div class="flex justify-between">
+            <dt>Quests</dt><dd class="font-mono">{snap.counts.quests.toLocaleString()}</dd>
+          </div>
+          <div class="flex justify-between">
+            <dt>Items</dt><dd class="font-mono">{snap.counts.items.toLocaleString()}</dd>
+          </div>
+          <div class="flex justify-between">
+            <dt>NPCs</dt><dd class="font-mono">{snap.counts.npcs.toLocaleString()}</dd>
+          </div>
+          <div class="flex justify-between border-t border-ash-800/60 pt-1.5 mt-1.5">
+            <dt class="text-ash-500">Generated</dt>
+            <dd class="text-ash-400">{generatedHuman}</dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+
+    <div
+      class="border-t border-ash-800/60 py-4 flex flex-wrap items-center justify-between gap-2
+             text-xs text-ash-500"
+    >
+      <p>
+        © {generated.getFullYear()} Emberstone. Classic 1.12.1 server data.
+        World of Warcraft is a trademark of Blizzard Entertainment.
+      </p>
+      <p>
+        Built with <a href="https://astro.build" class="text-ash-300 hover:text-ember-300">Astro</a>
+        · Tooltips by <a href="https://www.wowhead.com/classic" class="text-ash-300 hover:text-ember-300">Wowhead</a>
+      </p>
+    </div>
+  </Container>
+</footer>

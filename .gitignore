@@ -1,0 +1,38 @@
+# Build output
+dist/
+.astro/
+.output/
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Local env
+.env
+.env.local
+.env.*.local
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Generated data dumps (built fresh in CI / dev from MariaDB) — only
+# stub committed; the dump-db script overwrites them with real content
+# when MariaDB creds are present at build time.
+src/data/generated/*
+!src/data/generated/snapshot.json
+!src/data/generated/quests.json
+!src/data/generated/items.json
+!src/data/generated/npcs.json
+!src/data/generated/spells.json
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Misc
+.cache/
