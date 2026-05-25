@@ -2,58 +2,211 @@
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import Container from '~/components/layout/Container.astro';
 
-// Classic vanilla zones — hand-listed (no DB table to derive from
-// cleanly in cmangos). Each links to a stub zone page that can later
-// pull quests/NPCs/instances scoped to it.
-const ZONES = [
-  // Eastern Kingdoms
-  { id: 12,  name: 'Elwynn Forest',          continent: 'Eastern Kingdoms', lvl: '1–10' },
-  { id: 38,  name: 'Loch Modan',             continent: 'Eastern Kingdoms', lvl: '10–20' },
-  { id: 40,  name: 'Westfall',               continent: 'Eastern Kingdoms', lvl: '10–20' },
-  { id: 44,  name: 'Redridge Mountains',     continent: 'Eastern Kingdoms', lvl: '15–25' },
-  { id: 47,  name: 'The Hinterlands',        continent: 'Eastern Kingdoms', lvl: '40–50' },
-  { id: 51,  name: 'Searing Gorge',          continent: 'Eastern Kingdoms', lvl: '45–55' },
-  { id: 1583,name: 'Blackrock Spire (Lower)',continent: 'Eastern Kingdoms', lvl: '55–60', dungeon: true },
-  { id: 1584,name: 'Blackrock Depths',       continent: 'Eastern Kingdoms', lvl: '52–60', dungeon: true },
-  // Kalimdor
-  { id: 215, name: 'Mulgore',                continent: 'Kalimdor', lvl: '1–10' },
-  { id: 14,  name: 'Durotar',                continent: 'Kalimdor', lvl: '1–10' },
-  { id: 405, name: 'Desolace',               continent: 'Kalimdor', lvl: '30–40' },
-  { id: 357, name: 'Feralas',                continent: 'Kalimdor', lvl: '40–50' },
-  { id: 16,  name: 'Azshara',                continent: 'Kalimdor', lvl: '45–55' },
-  { id: 28,  name: "Western Plaguelands",    continent: 'Eastern Kingdoms', lvl: '51–58' },
-  { id: 139, name: 'Eastern Plaguelands',    continent: 'Eastern Kingdoms', lvl: '53–60' },
-  { id: 2017,name: 'Stratholme',             continent: 'Eastern Kingdoms', lvl: '58–60', dungeon: true },
-  { id: 2057,name: 'Scholomance',            continent: 'Eastern Kingdoms', lvl: '58–60', dungeon: true },
-  { id: 2159,name: "Onyxia's Lair",          continent: 'Kalimdor',         lvl: '60', dungeon: true, raid: true },
-  { id: 2677,name: 'Blackwing Lair',         continent: 'Eastern Kingdoms', lvl: '60', dungeon: true, raid: true }
+// ── Classic 1.12.1 world catalogue ─────────────────────────────────
+// Open-world zones grouped by continent, then instanced content by
+// type. AreaIDs match the client's AreaTable.dbc so the per-zone page
+// can later join against quest_template.ZoneOrSort (positive values
+// are AreaIDs, negative values are QuestSort buckets) to roll up the
+// content. Levels are the in-game level brackets, not strict caps.
+
+type Zone = {
+  id: number;
+  name: string;
+  /** Display-only level range. */
+  lvl: string;
+  /** Optional sub-zone hint (e.g. "Booty Bay" for STV). */
+  hint?: string;
+};
+type Instance = Zone & {
+  size: number;
+  /** Optional designed party size (5/10/20/40). */
+};
+
+const ALLIANCE_ZONES: Zone[] = [
+  { id: 12,  name: 'Elwynn Forest',          lvl: '1–10' },
+  { id: 1519,name: 'Stormwind City',         lvl: 'capital' },
+  { id: 38,  name: 'Loch Modan',             lvl: '10–20' },
+  { id: 40,  name: 'Westfall',               lvl: '10–20' },
+  { id: 1,   name: 'Dun Morogh',             lvl: '1–10' },
+  { id: 1537,name: 'Ironforge',              lvl: 'capital' },
+  { id: 85,  name: 'Tirisfal Glades (Alliance scout)', lvl: '1–10', hint: 'shared questing' },
+  { id: 44,  name: 'Redridge Mountains',     lvl: '15–25' },
+  { id: 10,  name: 'Duskwood',               lvl: '18–30' },
+  { id: 267, name: 'Hillsbrad Foothills',    lvl: '20–30' },
+  { id: 33,  name: 'Stranglethorn Vale',     lvl: '30–45', hint: 'shared with Horde' },
+  { id: 11,  name: 'Wetlands',               lvl: '20–30' },
+  { id: 47,  name: 'The Hinterlands',        lvl: '40–50' },
+  { id: 1377,name: 'Silithus',               lvl: '55–60', hint: 'shared' },
+  { id: 51,  name: 'Searing Gorge',          lvl: '45–55' },
+  { id: 46,  name: 'Burning Steppes',        lvl: '50–58' },
+  { id: 139, name: 'Eastern Plaguelands',    lvl: '53–60' },
+  { id: 28,  name: 'Western Plaguelands',    lvl: '51–58' },
+  { id: 36,  name: 'Alterac Mountains',      lvl: '30–40' },
+  { id: 8,   name: 'Swamp of Sorrows',       lvl: '35–45' },
+  { id: 45,  name: 'Arathi Highlands',       lvl: '30–40' },
+  { id: 4,   name: 'Blasted Lands',          lvl: '45–55' },
+  { id: 41,  name: 'Deadwind Pass',          lvl: '55+', hint: 'no quests, world bosses' }
+];
+
+const KALIMDOR_ZONES: Zone[] = [
+  { id: 215, name: 'Mulgore',                lvl: '1–10' },
+  { id: 14,  name: 'Durotar',                lvl: '1–10' },
+  { id: 1637,name: 'Orgrimmar',              lvl: 'capital' },
+  { id: 141, name: 'Teldrassil',             lvl: '1–10' },
+  { id: 1657,name: 'Darnassus',              lvl: 'capital' },
+  { id: 17,  name: 'The Barrens',            lvl: '10–25' },
+  { id: 148, name: 'Darkshore',              lvl: '10–20' },
+  { id: 331, name: 'Ashenvale',              lvl: '18–30' },
+  { id: 1638,name: "Thunder Bluff",          lvl: 'capital' },
+  { id: 406, name: 'Stonetalon Mountains',   lvl: '15–27' },
+  { id: 405, name: 'Desolace',               lvl: '30–40' },
+  { id: 357, name: 'Feralas',                lvl: '40–50' },
+  { id: 400, name: 'Thousand Needles',       lvl: '25–35' },
+  { id: 16,  name: 'Azshara',                lvl: '45–55' },
+  { id: 440, name: 'Tanaris',                lvl: '40–50' },
+  { id: 490, name: 'Un\'Goro Crater',        lvl: '48–55' },
+  { id: 618, name: 'Winterspring',           lvl: '53–60' },
+  { id: 361, name: 'Felwood',                lvl: '48–55' },
+  { id: 215, name: 'Mulgore',                lvl: '1–10' },
+  { id: 1377,name: 'Silithus',               lvl: '55–60' },
+  { id: 281, name: 'Moonglade',              lvl: 'sanctuary' }
+];
+
+// 5-man dungeons (level ranges from cmangos/wowhead).
+const DUNGEONS: Instance[] = [
+  { id: 2437, name: 'Ragefire Chasm',                lvl: '13–18', size: 5, hint: 'Orgrimmar' },
+  { id: 1581, name: 'The Deadmines',                 lvl: '17–26', size: 5, hint: 'Westfall' },
+  { id: 718,  name: 'Wailing Caverns',               lvl: '15–25', size: 5, hint: 'Barrens' },
+  { id: 209,  name: 'Shadowfang Keep',               lvl: '22–30', size: 5, hint: 'Silverpine Forest' },
+  { id: 717,  name: 'The Stockade',                  lvl: '24–32', size: 5, hint: 'Stormwind' },
+  { id: 719,  name: 'Blackfathom Deeps',             lvl: '24–32', size: 5, hint: 'Ashenvale' },
+  { id: 90,   name: 'Gnomeregan',                    lvl: '29–38', size: 5, hint: 'Dun Morogh' },
+  { id: 491,  name: 'Razorfen Kraul',                lvl: '29–38', size: 5, hint: 'Barrens' },
+  { id: 722,  name: 'Razorfen Downs',                lvl: '37–46', size: 5, hint: 'Barrens' },
+  { id: 796,  name: 'Scarlet Monastery (4 wings)',   lvl: '28–45', size: 5, hint: 'Tirisfal — Graveyard / Library / Armory / Cathedral' },
+  { id: 1337, name: 'Uldaman',                       lvl: '40–49', size: 5, hint: 'Badlands' },
+  { id: 2100, name: 'Maraudon',                      lvl: '45–55', size: 5, hint: 'Desolace' },
+  { id: 1176, name: 'Zul\'Farrak',                   lvl: '43–55', size: 5, hint: 'Tanaris' },
+  { id: 1477, name: 'Sunken Temple',                 lvl: '50–60', size: 5, hint: 'Swamp of Sorrows' },
+  { id: 1584, name: 'Blackrock Depths',              lvl: '52–60', size: 5, hint: 'Searing Gorge — long dungeon' },
+  { id: 1583, name: 'Lower Blackrock Spire',         lvl: '55–60', size: 5, hint: 'Searing Gorge — 5-man until 1.10' },
+  { id: 2017, name: 'Stratholme',                    lvl: '58–60', size: 5, hint: 'Eastern Plaguelands — Live / Undead sides' },
+  { id: 2057, name: 'Scholomance',                   lvl: '58–60', size: 5, hint: 'Western Plaguelands' },
+  { id: 429,  name: 'Dire Maul (3 wings)',           lvl: '54–60', size: 5, hint: 'Feralas — East / West / North' }
+];
+
+// 10–40-man raids.
+const RAIDS: Instance[] = [
+  { id: 1583, name: 'Upper Blackrock Spire',         lvl: '60', size: 10, hint: 'Searing Gorge — 10-man raid post-1.10' },
+  { id: 2677, name: 'Blackwing Lair',                lvl: '60', size: 40, hint: 'inside Blackrock Mountain — Nefarian' },
+  { id: 2159, name: "Onyxia's Lair",                 lvl: '60', size: 40, hint: 'Dustwallow Marsh entrance' },
+  { id: 2717, name: 'Molten Core',                   lvl: '60', size: 40, hint: 'inside Blackrock Mountain — Ragnaros' },
+  { id: 1977, name: "Zul'Gurub",                     lvl: '60', size: 20, hint: 'Stranglethorn Vale — Hakkar' },
+  { id: 3429, name: "Ruins of Ahn'Qiraj",            lvl: '60', size: 20, hint: 'Silithus — AQ20' },
+  { id: 3428, name: "Temple of Ahn'Qiraj",           lvl: '60', size: 40, hint: 'Silithus — AQ40 — C\'Thun' },
+  { id: 3456, name: 'Naxxramas',                     lvl: '60', size: 40, hint: 'Eastern Plaguelands — Kel\'Thuzad' }
+];
+
+const ZONE_GROUPS = [
+  { title: 'Eastern Kingdoms',            tag: 'Continent', zones: ALLIANCE_ZONES, accent: false },
+  { title: 'Kalimdor',                    tag: 'Continent', zones: KALIMDOR_ZONES, accent: false }
 ];
 ---
-<BaseLayout title="Zones — Emberstone Database">
+<BaseLayout title="Zones, dungeons & raids — Emberstone Database">
   <Container size="lg" class="mt-10">
-    <h1 class="font-serif text-4xl tracking-tight text-ash-50">Zones & dungeons</h1>
-    <p class="mt-2 text-ash-400 max-w-2xl">
-      Wander the world by region. Per-zone pages aggregate every quest, NPC and dungeon
-      encounter local to that area.
-    </p>
-    <div class="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-      {ZONES.map(z => (
-        <a
-          href={`/db/zones/${z.id}`}
-          class="group rounded-md border border-ash-800 bg-bg-surface/70 p-4 hover:border-ember-800 hover:shadow-glow transition-all duration-300"
-        >
-          <div class="flex items-center justify-between text-[10px] uppercase tracking-widest text-ash-500">
-            <span>{z.continent}</span>
-            <span>Lv {z.lvl}</span>
+    <header>
+      <h1 class="font-heading text-4xl tracking-tight text-ash-50">Zones, dungeons & raids</h1>
+      <p class="mt-2 text-ash-100 max-w-2xl">
+        The Classic 1.12.1 world catalogue — every open-world zone on both
+        continents plus the full dungeon and raid list. Per-zone pages
+        aggregate quests, NPCs, and instance encounters local to that area.
+      </p>
+    </header>
+
+    {ZONE_GROUPS.map(g => (
+      <section class="mt-12">
+        <div class="flex items-end justify-between gap-4 mb-4">
+          <div>
+            <span class="text-[10px] uppercase tracking-widest text-ember-300">{g.tag}</span>
+            <h2 class="font-heading text-2xl text-ash-50">{g.title}</h2>
           </div>
-          <div class="mt-2 text-ash-100 group-hover:text-ember-200 transition-colors">{z.name}</div>
-          {z.raid ? (
-            <span class="mt-1 inline-block text-[10px] uppercase tracking-widest text-rarity-epic">Raid</span>
-          ) : z.dungeon ? (
-            <span class="mt-1 inline-block text-[10px] uppercase tracking-widest text-ember-400">Dungeon</span>
-          ) : null}
-        </a>
-      ))}
-    </div>
+          <span class="text-xs text-ash-300 font-mono">{g.zones.length} zones</span>
+        </div>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {g.zones.map(z => (
+            <a
+              href={`/db/zones/${z.id}`}
+              class="group rounded-md bg-bg-card backdrop-blur-sm border border-ember-500/[0.08] p-4
+                     hover:bg-bg-raised hover:border-ember-500/[0.30] hover:shadow-glow
+                     transition-all duration-300"
+            >
+              <div class="flex items-center justify-between text-[10px] uppercase tracking-widest text-ash-300">
+                <span>Open world</span>
+                <span class="text-ember-300">Lv {z.lvl}</span>
+              </div>
+              <div class="mt-2 text-ash-50 group-hover:text-ember-bright transition-colors">{z.name}</div>
+              {z.hint && <div class="mt-1 text-xs text-ash-300">{z.hint}</div>}
+            </a>
+          ))}
+        </div>
+      </section>
+    ))}
+
+    <!-- ── Dungeons ─────────────────────────────────────────────── -->
+    <section class="mt-16">
+      <div class="flex items-end justify-between gap-4 mb-4">
+        <div>
+          <span class="text-[10px] uppercase tracking-widest text-ember-300">Instanced · 5-player</span>
+          <h2 class="font-heading text-2xl text-ash-50">Dungeons</h2>
+        </div>
+        <span class="text-xs text-ash-300 font-mono">{DUNGEONS.length} dungeons</span>
+      </div>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {DUNGEONS.map(d => (
+          <a
+            href={`/db/zones/${d.id}`}
+            class="group rounded-md bg-bg-card backdrop-blur-sm border border-ember-500/[0.12] p-4
+                   hover:bg-bg-raised hover:border-ember-500/[0.40] hover:shadow-glow
+                   transition-all duration-300"
+          >
+            <div class="flex items-center justify-between text-[10px] uppercase tracking-widest text-ash-300">
+              <span class="text-ember-400">Dungeon · {d.size}-man</span>
+              <span class="text-ember-300">Lv {d.lvl}</span>
+            </div>
+            <div class="mt-2 text-ash-50 group-hover:text-ember-bright transition-colors">{d.name}</div>
+            {d.hint && <div class="mt-1 text-xs text-ash-300">{d.hint}</div>}
+          </a>
+        ))}
+      </div>
+    </section>
+
+    <!-- ── Raids ────────────────────────────────────────────────── -->
+    <section class="mt-16 mb-24">
+      <div class="flex items-end justify-between gap-4 mb-4">
+        <div>
+          <span class="text-[10px] uppercase tracking-widest text-rarity-epic">Instanced · 10/20/40-player</span>
+          <h2 class="font-heading text-2xl text-ash-50">Raids</h2>
+        </div>
+        <span class="text-xs text-ash-300 font-mono">{RAIDS.length} raids</span>
+      </div>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {RAIDS.map(r => (
+          <a
+            href={`/db/zones/${r.id}`}
+            class="group rounded-md bg-bg-card backdrop-blur-sm p-4
+                   transition-all duration-300
+                   hover:bg-bg-raised hover:shadow-glow"
+            style="border: 1px solid rgba(163, 53, 238, 0.18);"
+          >
+            <div class="flex items-center justify-between text-[10px] uppercase tracking-widest text-ash-300">
+              <span class="text-rarity-epic">Raid · {r.size}-man</span>
+              <span class="text-ember-300">Lv {r.lvl}</span>
+            </div>
+            <div class="mt-2 text-ash-50 group-hover:text-ember-bright transition-colors">{r.name}</div>
+            {r.hint && <div class="mt-1 text-xs text-ash-300">{r.hint}</div>}
+          </a>
+        ))}
+      </div>
+    </section>
   </Container>
 </BaseLayout>

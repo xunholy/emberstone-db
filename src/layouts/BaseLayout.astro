@@ -41,10 +41,20 @@ const canonical = new URL(Astro.url.pathname, Astro.site).toString();
     <meta property="og:image" content={`${Astro.site}db/og-image.png`} />
     <meta name="twitter:card" content="summary_large_image" />
 
-    <!-- Wowhead Classic tooltips: hover/auto-render link tooltips for
-         stock 1.12.1 quests/items/npcs/spells. Loaded once, idle. -->
+    <!-- Wowhead Classic tooltips: hover/auto-render link tooltips +
+         inline icons for stock 1.12.1 quests/items/npcs/spells.
+         Loaded once, idle. Targets any <a data-wowhead="kind=ID">.
+         renameLinks=false keeps our structured row text intact.
+         colorLinks=false because rarity colour is rendered server-side
+         from item_template.Quality already. iconizeLinks=true is the
+         "give me icons everywhere" toggle. -->
     <script is:inline>
-      var whTooltips = { colorLinks: true, iconizeLinks: true, renameLinks: true };
+      var whTooltips = {
+        colorLinks: false,
+        iconizeLinks: true,
+        renameLinks: false,
+        iconSize: 'small'
+      };
     </script>
     <script
       is:inline
