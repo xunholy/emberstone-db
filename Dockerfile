@@ -56,6 +56,10 @@ server {
   listen [::]:8080 default_server;
   server_name _;
 
+  # Explicit root + index so try_files behaves predictably.
+  root /usr/share/nginx/html;
+  index index.html;
+
   # Aggressive long-cache for hashed static assets; short-cache for HTML
   # so deploys are visible quickly after a reconcile.
   location /db/_astro/ {
@@ -68,9 +72,22 @@ server {
     add_header Cache-Control "public, immutable" always;
     try_files $uri =404;
   }
+  # Canonicalise the bare `/db` (no trailing slash) so it doesn't hit
+  # the catchall and 404 — Astro builds index.html under /db/ so the
+  # canonical URL has the slash.
+  location = /db {
+    return 302 /db/;
+  }
+  # Main site routes. Astro builds with `trailingSlash: 'never'` so
+  # entity pages live at e.g. /db/quests/4322/index.html (the directory
+  # form is what Astro emits when prerendering). Try the URI itself
+  # first (hits exact files like /db/favicon.svg), then look for the
+  # directory's index.html, then a flat .html file, finally fall back
+  # to the dedicated 404 page. The `=404` final stop breaks any
+  # potential redirect loops cleanly.
   location /db/ {
     add_header Cache-Control "public, max-age=300, s-maxage=600, stale-while-revalidate=86400" always;
-    try_files $uri $uri/index.html $uri.html /db/404/index.html;
+    try_files $uri $uri/index.html $uri.html /db/404.html =404;
   }
   # Healthcheck for k8s probes.
   location = /healthz {
