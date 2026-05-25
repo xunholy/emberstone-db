@@ -1,6 +1,7 @@
 ---
 import { Badge } from '~/components/ui/badge';
 import { qualityTextClass } from '~/lib/quality';
+import { setParam } from '~/lib/filters';
 
 type Row = {
   id: number;
@@ -24,12 +25,18 @@ interface Props {
 }
 
 const { kind, rows, title, total, page, totalPages, hrefBase } = Astro.props;
+const url = Astro.url;
 
 // Map our route kind → Wowhead's `data-wowhead` entity prefix. Zones
 // don't have a Wowhead equivalent — skip the attribute there.
 const whKind = ({
   quests: 'quest', items: 'item', npcs: 'npc', spells: 'spell', zones: ''
 } as const)[kind];
+
+// Pagination links must preserve every filter / sort / search param.
+function pageHref(n: number): string {
+  return setParam(url, 'page', String(n));
+}
 
 // 1-indexed page links. Show first, last, current ± 2, with ellipses
 // for gaps. Generates at most ~9 visible page links.
@@ -94,7 +101,7 @@ const links = pageLinks();
   {totalPages > 1 && (
     <nav class="flex items-center justify-center gap-1 px-5 py-4 border-t border-ember-500/[0.08]" aria-label="Pagination">
       <a
-        href={page > 1 ? `${hrefBase}?page=${page - 1}` : undefined}
+        href={page > 1 ? pageHref(page - 1) : undefined}
         class:list={[
           'inline-flex h-8 px-3 items-center justify-center rounded-md text-sm transition-colors',
           page > 1
@@ -111,7 +118,7 @@ const links = pageLinks();
             <span class="text-ash-300 text-sm px-1">…</span>
           ) : (
             <a
-              href={`${hrefBase}?page=${n}`}
+              href={pageHref(n)}
               class:list={[
                 'inline-flex h-8 min-w-[2rem] items-center justify-center rounded-md text-sm tabular-nums transition-colors',
                 n === page
@@ -126,7 +133,7 @@ const links = pageLinks();
         ))}
       </div>
       <a
-        href={page < totalPages ? `${hrefBase}?page=${page + 1}` : undefined}
+        href={page < totalPages ? pageHref(page + 1) : undefined}
         class:list={[
           'inline-flex h-8 px-3 items-center justify-center rounded-md text-sm transition-colors',
           page < totalPages

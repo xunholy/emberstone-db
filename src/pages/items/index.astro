@@ -2,44 +2,138 @@
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import Container from '~/components/layout/Container.astro';
 import EntityList from '~/components/entities/EntityList.astro';
+import EntityFilters from '~/components/entities/EntityFilters.astro';
 import { listItems } from '~/lib/db/data';
-import { QUALITY_NAME } from '~/lib/quality';
+import { QUALITY_NAME, qualityTextClass } from '~/lib/quality';
+import { ITEM_CLASS, INV_SLOT, LEVEL_BRACKETS } from '~/lib/db/taxonomies';
+import { parseListQuery, matches, paginate } from '~/lib/filters';
 
 export const prerender = false;
 
-const PER_PAGE = 50;
-const all = listItems().slice().sort((a, b) => (b.itemLevel || 0) - (a.itemLevel || 0) || a.entry - b.entry);
-const totalPages = Math.max(1, Math.ceil(all.length / PER_PAGE));
-const pageParam = Number(Astro.url.searchParams.get('page') ?? '1');
-const page = Math.min(Math.max(1, pageParam), totalPages);
-const start = (page - 1) * PER_PAGE;
-const rows = all.slice(start, start + PER_PAGE).map(i => ({
+const url = Astro.url;
+const q = parseListQuery(url);
+
+const all = listItems();
+
+// ── Filter ───────────────────────────────────────────────────────
+let filtered = all;
+if (q.q) filtered = filtered.filter(i => matches(i.name, q.q));
+if (q.filters.quality !== undefined && q.filters.quality !== '') {
+  const qty = Number(q.filters.quality);
+  filtered = filtered.filter(i => i.quality === qty);
+}
+if (q.filters.class !== undefined && q.filters.class !== '') {
+  const c = Number(q.filters.class);
+  filtered = filtered.filter(i => i.class === c);
+}
+if (q.filters.slot !== undefined && q.filters.slot !== '') {
+  const s = Number(q.filters.slot);
+  filtered = filtered.filter(i => i.inventoryType === s);
+}
+if (q.filters.level) {
+  const bracket = LEVEL_BRACKETS.find(b => b.label === q.filters.level);
+  if (bracket) filtered = filtered.filter(i => i.requiredLevel >= bracket.min && i.requiredLevel <= bracket.max);
+}
+
+// ── Sort ─────────────────────────────────────────────────────────
+const sort = q.sort || 'ilvl-desc';
+filtered = filtered.slice();
+switch (sort) {
+  case 'ilvl-desc':    filtered.sort((a, b) => (b.itemLevel || 0) - (a.itemLevel || 0) || a.entry - b.entry); break;
+  case 'ilvl-asc':     filtered.sort((a, b) => (a.itemLevel || 0) - (b.itemLevel || 0) || a.entry - b.entry); break;
+  case 'reqlevel-asc': filtered.sort((a, b) => (a.requiredLevel || 0) - (b.requiredLevel || 0)); break;
+  case 'quality-desc': filtered.sort((a, b) => (b.quality || 0) - (a.quality || 0) || (b.itemLevel || 0) - (a.itemLevel || 0)); break;
+  case 'name-asc':     filtered.sort((a, b) => a.name.localeCompare(b.name)); break;
+  case 'id-asc':       filtered.sort((a, b) => a.entry - b.entry); break;
+}
+
+const { rows: pageRows, page, totalPages, total } = paginate(filtered, q.page, 50);
+
+const rows = pageRows.map(i => ({
   id: i.entry,
   name: i.name,
-  meta: `${QUALITY_NAME[(i.quality as 0)] ?? 'Common'} · iLvl ${i.itemLevel || '?'}`,
+  meta: `${QUALITY_NAME[(i.quality as 0)] ?? 'Common'} · ${ITEM_CLASS[i.class] || `class ${i.class}`} · iLvl ${i.itemLevel || '?'}`,
   level: i.requiredLevel,
   quality: i.quality,
   emberstoneCustom: i.emberstoneCustom
 }));
+
+// Counts for chip badges.
+const qualityCounts: Record<number, number> = {};
+for (const i of all) qualityCounts[i.quality] = (qualityCounts[i.quality] || 0) + 1;
+const classCounts: Record<number, number> = {};
+for (const i of all) classCounts[i.class] = (classCounts[i.class] || 0) + 1;
+const slotCounts: Record<number, number> = {};
+for (const i of all) slotCounts[i.inventoryType] = (slotCounts[i.inventoryType] || 0) + 1;
 ---
-<BaseLayout title={`Items · page ${page} — Emberstone Database`}>
+<BaseLayout title={`Items${q.q ? ' · ' + q.q : ''} · page ${page} — Emberstone Database`}>
   <Container size="lg" class="mt-10">
-    <h1 class="font-heading text-4xl tracking-tight text-ash-50">Items</h1>
-    <p class="mt-2 text-ash-300 max-w-2xl">
-      Weapons, armor, recipes, consumables, quest items — anything that sits in a
-      character's inventory. Sorted by item level. Use search (<kbd class="px-1.5 py-0.5 text-[10px] rounded bg-bg-inset border border-ember-500/[0.08] font-mono">⌘ K</kbd>)
-      to filter by name across all {all.length.toLocaleString()} entries.
-    </p>
-    <div class="mt-8">
-      <EntityList
-        kind="items"
-        rows={rows}
-        title="All items · sorted by item level"
-        total={all.length}
-        page={page}
-        totalPages={totalPages}
-        hrefBase="/db/items"
-      />
-    </div>
+    <header class="mb-6">
+      <h1 class="font-heading text-4xl tracking-tight text-ash-50">Items</h1>
+      <p class="mt-2 text-ash-100 max-w-2xl">
+        Weapons, armor, recipes, consumables, quest items — anything that sits in
+        a character's inventory. <span class="text-ash-300">{all.length.toLocaleString()}</span> total.
+        Filter by quality, equipment slot, item class, or required level.
+      </p>
+    </header>
+
+    <EntityFilters
+      url={url}
+      action="/db/items"
+      searchPlaceholder="Search items by name…"
+      groups={[
+        {
+          key: 'quality',
+          label: 'Quality',
+          options: [6, 5, 4, 3, 2, 1, 0].map(q => ({
+            value: String(q),
+            label: QUALITY_NAME[q as 0],
+            count: qualityCounts[q] || 0,
+            tone: 'rarity' as const,
+            rarityClass: qualityTextClass(q)
+          })).filter(o => (o.count || 0) > 0)
+        },
+        {
+          key: 'class',
+          label: 'Item class',
+          options: Object.entries(ITEM_CLASS)
+            .filter(([id]) => (classCounts[Number(id)] || 0) > 0)
+            .sort(([a], [b]) => (classCounts[Number(b)] || 0) - (classCounts[Number(a)] || 0))
+            .map(([id, label]) => ({ value: id, label, count: classCounts[Number(id)] || 0 }))
+        },
+        {
+          key: 'slot',
+          label: 'Equipment slot',
+          options: Object.entries(INV_SLOT)
+            .filter(([id]) => Number(id) !== 0 && (slotCounts[Number(id)] || 0) > 0)
+            .sort(([a], [b]) => (slotCounts[Number(b)] || 0) - (slotCounts[Number(a)] || 0))
+            .slice(0, 14)
+            .map(([id, label]) => ({ value: id, label, count: slotCounts[Number(id)] || 0 }))
+        },
+        {
+          key: 'level',
+          label: 'Required level',
+          options: LEVEL_BRACKETS.map(b => ({ value: b.label, label: b.label }))
+        }
+      ]}
+      sortOptions={[
+        { value: 'ilvl-desc',    label: 'Item level (high → low)' },
+        { value: 'ilvl-asc',     label: 'Item level (low → high)' },
+        { value: 'quality-desc', label: 'Quality (rarest first)' },
+        { value: 'reqlevel-asc', label: 'Required level ↑' },
+        { value: 'name-asc',     label: 'Name (A → Z)' },
+        { value: 'id-asc',       label: 'Entry ID ↑' }
+      ]}
+    />
+
+    <EntityList
+      kind="items"
+      rows={rows}
+      title={q.q ? `Matches for "${q.q}"` : 'All items'}
+      total={total}
+      page={page}
+      totalPages={totalPages}
+      hrefBase="/db/items"
+    />
   </Container>
 </BaseLayout>

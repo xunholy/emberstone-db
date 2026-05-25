@@ -2,48 +2,146 @@
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import Container from '~/components/layout/Container.astro';
 import EntityList from '~/components/entities/EntityList.astro';
+import EntityFilters from '~/components/entities/EntityFilters.astro';
 import { listQuests } from '~/lib/db/data';
-import { questFaction } from '~/lib/format';
+import { questFactionLabel, QUEST_TYPE, CLASS_MASK, LEVEL_BRACKETS } from '~/lib/db/taxonomies';
+import { parseListQuery, matches, paginate } from '~/lib/filters';
 
-// SSR'd so we can react to ?page= query param (and later filters).
 export const prerender = false;
 
-const PER_PAGE = 50;
-const all = listQuests().slice().sort((a, b) => (a.minLevel || a.questLevel || 0) - (b.minLevel || b.questLevel || 0) || a.entry - b.entry);
-const totalPages = Math.max(1, Math.ceil(all.length / PER_PAGE));
-const pageParam = Number(Astro.url.searchParams.get('page') ?? '1');
-const page = Math.min(Math.max(1, pageParam), totalPages);
-const start = (page - 1) * PER_PAGE;
-const rows = all.slice(start, start + PER_PAGE).map(q => {
-  const f = questFaction(q.requiredRaces);
-  return {
-    id: q.entry,
-    name: q.title,
-    meta: q.objectives ? q.objectives.slice(0, 90) + (q.objectives.length > 90 ? '…' : '')
-                       : (f !== 'neutral' ? `${f[0].toUpperCase()}${f.slice(1)}` : undefined),
-    level: q.minLevel || q.questLevel,
-    emberstoneCustom: q.emberstoneCustom
-  };
-});
+const url = Astro.url;
+const q = parseListQuery(url);
+
+const all = listQuests();
+
+// ── Apply filters ─────────────────────────────────────────────────
+let filtered = all;
+if (q.q) filtered = filtered.filter(x => matches(x.title, q.q));
+if (q.filters.faction) {
+  filtered = filtered.filter(x => questFactionLabel(x.requiredRaces) === q.filters.faction);
+}
+if (q.filters.type) {
+  const t = Number(q.filters.type);
+  filtered = filtered.filter(x => x.type === t);
+}
+if (q.filters.class) {
+  const m = Number(q.filters.class);
+  filtered = filtered.filter(x => (x.requiredClasses & m) === m);
+}
+if (q.filters.level) {
+  const bracket = LEVEL_BRACKETS.find(b => b.label === q.filters.level);
+  if (bracket) {
+    filtered = filtered.filter(x => {
+      const l = x.minLevel || x.questLevel || 0;
+      return l >= bracket.min && l <= bracket.max;
+    });
+  }
+}
+
+// ── Sort ─────────────────────────────────────────────────────────
+const sort = q.sort || 'level-asc';
+filtered = filtered.slice();
+switch (sort) {
+  case 'level-asc':  filtered.sort((a, b) => (a.minLevel || a.questLevel || 0) - (b.minLevel || b.questLevel || 0) || a.entry - b.entry); break;
+  case 'level-desc': filtered.sort((a, b) => (b.minLevel || b.questLevel || 0) - (a.minLevel || a.questLevel || 0) || a.entry - b.entry); break;
+  case 'name-asc':   filtered.sort((a, b) => a.title.localeCompare(b.title)); break;
+  case 'name-desc':  filtered.sort((a, b) => b.title.localeCompare(a.title)); break;
+  case 'id-asc':     filtered.sort((a, b) => a.entry - b.entry); break;
+  case 'id-desc':    filtered.sort((a, b) => b.entry - a.entry); break;
+}
+
+const { rows: pageRows, page, totalPages, total } = paginate(filtered, q.page, 50);
+
+const rows = pageRows.map(qst => ({
+  id: qst.entry,
+  name: qst.title,
+  meta: qst.objectives ? qst.objectives.slice(0, 90) + (qst.objectives.length > 90 ? '…' : '') : undefined,
+  level: qst.minLevel || qst.questLevel,
+  emberstoneCustom: qst.emberstoneCustom
+}));
+
+// Pre-compute filter group counts from the unfiltered set so the chip
+// counts always reflect "how many would match if you toggled this".
+const totalCount = all.length;
+const factionCounts = {
+  alliance: all.filter(x => questFactionLabel(x.requiredRaces) === 'alliance').length,
+  horde:    all.filter(x => questFactionLabel(x.requiredRaces) === 'horde').length,
+  any:      all.filter(x => questFactionLabel(x.requiredRaces) === 'any').length
+};
+const typeCounts: Record<number, number> = {};
+for (const x of all) typeCounts[x.type] = (typeCounts[x.type] || 0) + 1;
+const classCounts: Record<number, number> = {};
+for (const x of all) {
+  for (const mask of Object.keys(CLASS_MASK).map(Number)) {
+    if ((x.requiredClasses & mask) === mask && x.requiredClasses !== 0) {
+      classCounts[mask] = (classCounts[mask] || 0) + 1;
+    }
+  }
+}
 ---
-<BaseLayout title={`Quests · page ${page} — Emberstone Database`}>
+<BaseLayout title={`Quests${q.q ? ' · ' + q.q : ''} · page ${page} — Emberstone Database`}>
   <Container size="lg" class="mt-10">
-    <h1 class="font-heading text-4xl tracking-tight text-ash-50">Quests</h1>
-    <p class="mt-2 text-ash-300 max-w-2xl">
-      Every quest from the live world DB — Classic 1.12.1 only. Press
-      <kbd class="px-1.5 py-0.5 text-[10px] rounded bg-bg-inset border border-ember-500/[0.08] font-mono">⌘ K</kbd>
-      to search by name across all {all.length.toLocaleString()} entries instantly.
-    </p>
-    <div class="mt-8">
-      <EntityList
-        kind="quests"
-        rows={rows}
-        title="All quests · sorted by level"
-        total={all.length}
-        page={page}
-        totalPages={totalPages}
-        hrefBase="/db/quests"
-      />
-    </div>
+    <header class="mb-6">
+      <h1 class="font-heading text-4xl tracking-tight text-ash-50">Quests</h1>
+      <p class="mt-2 text-ash-100 max-w-2xl">
+        Every quest from the live world DB. <span class="text-ash-300">{totalCount.toLocaleString()}</span> total.
+        Filter by faction, type, class, or level bracket, or search by name.
+      </p>
+    </header>
+
+    <EntityFilters
+      url={url}
+      action="/db/quests"
+      searchPlaceholder="Search quests by name…"
+      groups={[
+        {
+          key: 'faction',
+          label: 'Faction',
+          options: [
+            { value: 'alliance', label: 'Alliance', count: factionCounts.alliance },
+            { value: 'horde',    label: 'Horde',    count: factionCounts.horde },
+            { value: 'any',      label: 'Both / Neutral', count: factionCounts.any }
+          ]
+        },
+        {
+          key: 'level',
+          label: 'Level bracket',
+          options: LEVEL_BRACKETS.map(b => ({ value: b.label, label: b.label }))
+        },
+        {
+          key: 'type',
+          label: 'Quest type',
+          options: Object.entries(QUEST_TYPE)
+            .filter(([id]) => typeCounts[Number(id)] > 0)
+            .sort(([a], [b]) => (typeCounts[Number(b)] || 0) - (typeCounts[Number(a)] || 0))
+            .map(([id, label]) => ({ value: id, label, count: typeCounts[Number(id)] || 0 }))
+        },
+        {
+          key: 'class',
+          label: 'Class requirement',
+          options: Object.entries(CLASS_MASK)
+            .map(([id, label]) => ({ value: id, label, count: classCounts[Number(id)] || 0 }))
+            .filter(o => (o.count || 0) > 0)
+        }
+      ]}
+      sortOptions={[
+        { value: 'level-asc',  label: 'Level (low → high)' },
+        { value: 'level-desc', label: 'Level (high → low)' },
+        { value: 'name-asc',   label: 'Name (A → Z)' },
+        { value: 'name-desc',  label: 'Name (Z → A)' },
+        { value: 'id-asc',     label: 'Entry ID ↑' },
+        { value: 'id-desc',    label: 'Entry ID ↓' }
+      ]}
+    />
+
+    <EntityList
+      kind="quests"
+      rows={rows}
+      title={q.q ? `Matches for "${q.q}"` : 'All quests'}
+      total={total}
+      page={page}
+      totalPages={totalPages}
+      hrefBase="/db/quests"
+    />
   </Container>
 </BaseLayout>

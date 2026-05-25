@@ -1,0 +1,160 @@
+---
+import { toggleParam, setParam, clearFilters } from '~/lib/filters';
+
+/**
+ * Declarative filter bar for list pages. Renders search input + chip
+ * groups + sort dropdown, all URL-driven (no client state). Submitting
+ * the search form rewrites ?q=, clicking a chip toggles its param,
+ * changing the sort dropdown navigates to the new ?sort=.
+ *
+ * Filter groups are pure data — each list page passes its own set
+ * (item lists get Quality/Slot/Class; quest lists get Faction/Type;
+ * NPC lists get Rank/Type; level bracket is universal).
+ */
+export interface ChipGroup {
+  /** URL param key (e.g. "quality"). */
+  key: string;
+  /** Heading shown above the chip row. */
+  label: string;
+  options: { value: string; label: string; count?: number; tone?: 'default' | 'rarity'; rarityClass?: string }[];
+}
+export interface SortOption {
+  value: string;
+  label: string;
+}
+interface Props {
+  /** Current URL (Astro.url). */
+  url: URL;
+  /** Free-text search placeholder. */
+  searchPlaceholder?: string;
+  /** Chip groups to render. */
+  groups: ChipGroup[];
+  /** Available sort options. First is default. */
+  sortOptions: SortOption[];
+  /** Path the search form posts to (typically the same list page). */
+  action: string;
+}
+
+const { url, groups, sortOptions, searchPlaceholder = 'Search by name…', action } = Astro.props;
+const currentSort = url.searchParams.get('sort') ?? sortOptions[0]?.value ?? '';
+const currentQ = url.searchParams.get('q') ?? '';
+const activeFilterCount = Object.keys(Object.fromEntries(url.searchParams.entries()))
+  .filter(k => k !== 'q' && k !== 'sort' && k !== 'page').length;
+---
+
+<div class="rounded-lg bg-bg-card backdrop-blur-sm border border-ember-500/[0.08] p-5 mb-6">
+  <!-- ── Top row: search + sort ────────────────────────────────── -->
+  <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+    <form method="get" action={action} class="flex-1">
+      <!-- Preserve all OTHER params on submit -->
+      {Array.from(url.searchParams.entries())
+        .filter(([k]) => k !== 'q' && k !== 'page')
+        .map(([k, v]) => (<input type="hidden" name={k} value={v} />))}
+      <div class="relative flex items-center">
+        <svg class="absolute left-3 h-4 w-4 text-ash-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3" stroke-linecap="round"/>
+        </svg>
+        <input
+          type="search"
+          name="q"
+          value={currentQ}
+          placeholder={searchPlaceholder}
+          class="w-full h-10 pl-10 pr-3 rounded-md bg-bg-inset border border-ember-500/[0.08]
+                 text-ash-50 placeholder:text-ash-300 text-sm
+                 focus:outline-none focus:border-ember-500/40 focus:ring-1 focus:ring-ember-500/30"
+        />
+        {currentQ && (
+          <a
+            href={setParam(url, 'q', undefined)}
+            class="absolute right-2 inline-flex h-6 w-6 items-center justify-center rounded-md text-ash-300 hover:text-ash-50 hover:bg-bg-raised"
+            aria-label="Clear search"
+          >×</a>
+        )}
+      </div>
+    </form>
+
+    <div class="flex items-center gap-2 shrink-0">
+      <label class="text-[10px] uppercase tracking-widest text-ash-300">Sort</label>
+      <select
+        id="sort-select"
+        data-base-url={url.pathname}
+        class="h-10 px-3 pr-8 rounded-md bg-bg-inset border border-ember-500/[0.08]
+               text-ash-50 text-sm focus:outline-none focus:border-ember-500/40"
+      >
+        {sortOptions.map(o => (
+          <option value={o.value} selected={o.value === currentSort}>{o.label}</option>
+        ))}
+      </select>
+    </div>
+  </div>
+
+  <!-- ── Filter chips ──────────────────────────────────────────── -->
+  {groups.length > 0 && (
+    <div class="mt-5 space-y-4">
+      {groups.map(g => {
+        const currentValue = url.searchParams.get(g.key) ?? '';
+        return (
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-[10px] uppercase tracking-widest text-ash-300">{g.label}</span>
+              {currentValue && (
+                <a
+                  href={setParam(url, g.key, undefined)}
+                  class="text-[10px] text-ash-300 hover:text-ember-300 underline decoration-dotted underline-offset-2"
+                >clear</a>
+              )}
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              {g.options.map(o => {
+                const active = currentValue === o.value;
+                return (
+                  <a
+                    href={toggleParam(url, g.key, o.value)}
+                    class:list={[
+                      'inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-xs transition-colors',
+                      active
+                        ? 'bg-ember-500/20 border border-ember-500/40 text-ember-bright'
+                        : 'bg-bg-inset border border-ember-500/[0.08] text-ash-100 hover:border-ember-500/30 hover:text-ember-bright',
+                      o.tone === 'rarity' && o.rarityClass
+                    ]}
+                  >
+                    {o.label}
+                    {typeof o.count === 'number' && (
+                      <span class="text-ash-300 tabular-nums">{o.count > 999 ? `${(o.count/1000).toFixed(1)}k` : o.count}</span>
+                    )}
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  )}
+
+  {activeFilterCount > 0 && (
+    <div class="mt-4 flex items-center justify-between text-xs">
+      <span class="text-ash-300">
+        <span class="text-ember-300 font-medium">{activeFilterCount}</span> filter{activeFilterCount !== 1 ? 's' : ''} active
+      </span>
+      <a
+        href={clearFilters(url)}
+        class="text-ember-300 hover:text-ember-bright underline decoration-dotted underline-offset-2"
+      >Clear all filters</a>
+    </div>
+  )}
+</div>
+
+<script>
+  // Sort dropdown: navigate to the new ?sort= value on change. Keeps
+  // all other URL params intact (search/filters/page→1).
+  const sel = document.getElementById('sort-select') as HTMLSelectElement | null;
+  if (sel) {
+    sel.addEventListener('change', () => {
+      const u = new URL(window.location.href);
+      u.searchParams.set('sort', sel.value);
+      u.searchParams.delete('page');
+      window.location.assign(u.pathname + (u.searchParams.toString() ? '?' + u.searchParams.toString() : ''));
+    });
+  }
+</script>

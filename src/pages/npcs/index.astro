@@ -2,42 +2,125 @@
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import Container from '~/components/layout/Container.astro';
 import EntityList from '~/components/entities/EntityList.astro';
+import EntityFilters from '~/components/entities/EntityFilters.astro';
 import { listNpcs } from '~/lib/db/data';
+import { NPC_RANK, NPC_TYPE, LEVEL_BRACKETS } from '~/lib/db/taxonomies';
+import { parseListQuery, matches, paginate } from '~/lib/filters';
 
 export const prerender = false;
 
-const PER_PAGE = 50;
-const all = listNpcs().slice().sort((a, b) => (b.minLevel || 0) - (a.minLevel || 0) || a.entry - b.entry);
-const totalPages = Math.max(1, Math.ceil(all.length / PER_PAGE));
-const pageParam = Number(Astro.url.searchParams.get('page') ?? '1');
-const page = Math.min(Math.max(1, pageParam), totalPages);
-const start = (page - 1) * PER_PAGE;
-const rows = all.slice(start, start + PER_PAGE).map(n => ({
+const url = Astro.url;
+const q = parseListQuery(url);
+
+const all = listNpcs();
+
+let filtered = all;
+if (q.q) filtered = filtered.filter(n => matches(n.name, q.q) || matches(n.subname, q.q));
+if (q.filters.rank !== undefined && q.filters.rank !== '') {
+  const r = Number(q.filters.rank);
+  filtered = filtered.filter(n => n.rank === r);
+}
+if (q.filters.type !== undefined && q.filters.type !== '') {
+  const t = Number(q.filters.type);
+  filtered = filtered.filter(n => n.type === t);
+}
+if (q.filters.level) {
+  const bracket = LEVEL_BRACKETS.find(b => b.label === q.filters.level);
+  if (bracket) filtered = filtered.filter(n => (n.minLevel || 0) >= bracket.min && (n.minLevel || 0) <= bracket.max);
+}
+if (q.filters.role === 'questgiver') {
+  filtered = filtered.filter(n => (n.startsQuests && n.startsQuests.length > 0) || (n.endsQuests && n.endsQuests.length > 0));
+}
+
+const sort = q.sort || 'level-desc';
+filtered = filtered.slice();
+switch (sort) {
+  case 'level-desc': filtered.sort((a, b) => (b.minLevel || 0) - (a.minLevel || 0) || a.entry - b.entry); break;
+  case 'level-asc':  filtered.sort((a, b) => (a.minLevel || 0) - (b.minLevel || 0) || a.entry - b.entry); break;
+  case 'name-asc':   filtered.sort((a, b) => a.name.localeCompare(b.name)); break;
+  case 'rank-desc':  filtered.sort((a, b) => (b.rank || 0) - (a.rank || 0) || (b.minLevel || 0) - (a.minLevel || 0)); break;
+  case 'id-asc':     filtered.sort((a, b) => a.entry - b.entry); break;
+}
+
+const { rows: pageRows, page, totalPages, total } = paginate(filtered, q.page, 50);
+
+const rows = pageRows.map(n => ({
   id: n.entry,
   name: n.name,
-  meta: n.subname || undefined,
+  meta: n.subname || (NPC_RANK[n.rank] !== 'Normal' ? NPC_RANK[n.rank] : undefined),
   level: n.minLevel,
   emberstoneCustom: n.emberstoneCustom || (n.entry >= 190000 && n.entry < 200000)
 }));
+
+const rankCounts: Record<number, number> = {};
+for (const n of all) rankCounts[n.rank] = (rankCounts[n.rank] || 0) + 1;
+const typeCounts: Record<number, number> = {};
+for (const n of all) typeCounts[n.type] = (typeCounts[n.type] || 0) + 1;
+const qgCount = all.filter(n => (n.startsQuests && n.startsQuests.length > 0) || (n.endsQuests && n.endsQuests.length > 0)).length;
 ---
-<BaseLayout title={`NPCs · page ${page} — Emberstone Database`}>
+<BaseLayout title={`NPCs${q.q ? ' · ' + q.q : ''} · page ${page} — Emberstone Database`}>
   <Container size="lg" class="mt-10">
-    <h1 class="font-heading text-4xl tracking-tight text-ash-50">NPCs</h1>
-    <p class="mt-2 text-ash-300 max-w-2xl">
-      Every creature, vendor, quest giver, escort target, and boss in the world.
-      Sorted by level. Press <kbd class="px-1.5 py-0.5 text-[10px] rounded bg-bg-inset border border-ember-500/[0.08] font-mono">⌘ K</kbd>
-      to filter across all {all.length.toLocaleString()} entries.
-    </p>
-    <div class="mt-8">
-      <EntityList
-        kind="npcs"
-        rows={rows}
-        title="All NPCs · sorted by level"
-        total={all.length}
-        page={page}
-        totalPages={totalPages}
-        hrefBase="/db/npcs"
-      />
-    </div>
+    <header class="mb-6">
+      <h1 class="font-heading text-4xl tracking-tight text-ash-50">NPCs</h1>
+      <p class="mt-2 text-ash-100 max-w-2xl">
+        Every creature, vendor, quest giver, escort target, and boss in the world.
+        <span class="text-ash-300">{all.length.toLocaleString()}</span> total.
+        Filter by rank (find bosses!), creature type, level, or whether they offer quests.
+      </p>
+    </header>
+
+    <EntityFilters
+      url={url}
+      action="/db/npcs"
+      searchPlaceholder="Search NPCs by name or title…"
+      groups={[
+        {
+          key: 'rank',
+          label: 'Rank',
+          options: [3, 1, 2, 4, 0].map(r => ({
+            value: String(r),
+            label: NPC_RANK[r],
+            count: rankCounts[r] || 0
+          })).filter(o => (o.count || 0) > 0)
+        },
+        {
+          key: 'type',
+          label: 'Creature type',
+          options: Object.entries(NPC_TYPE)
+            .filter(([id]) => Number(id) !== 0 && (typeCounts[Number(id)] || 0) > 0)
+            .sort(([a], [b]) => (typeCounts[Number(b)] || 0) - (typeCounts[Number(a)] || 0))
+            .map(([id, label]) => ({ value: id, label, count: typeCounts[Number(id)] || 0 }))
+        },
+        {
+          key: 'level',
+          label: 'Level bracket',
+          options: LEVEL_BRACKETS.map(b => ({ value: b.label, label: b.label }))
+        },
+        {
+          key: 'role',
+          label: 'Role',
+          options: [
+            { value: 'questgiver', label: 'Offers or turns in quests', count: qgCount }
+          ]
+        }
+      ]}
+      sortOptions={[
+        { value: 'level-desc', label: 'Level (high → low)' },
+        { value: 'level-asc',  label: 'Level (low → high)' },
+        { value: 'rank-desc',  label: 'Rank (bosses first)' },
+        { value: 'name-asc',   label: 'Name (A → Z)' },
+        { value: 'id-asc',     label: 'Entry ID ↑' }
+      ]}
+    />
+
+    <EntityList
+      kind="npcs"
+      rows={rows}
+      title={q.q ? `Matches for "${q.q}"` : 'All NPCs'}
+      total={total}
+      page={page}
+      totalPages={totalPages}
+      hrefBase="/db/npcs"
+    />
   </Container>
 </BaseLayout>
